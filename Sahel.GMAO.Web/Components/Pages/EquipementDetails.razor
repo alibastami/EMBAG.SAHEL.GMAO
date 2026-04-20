@@ -1,0 +1,102 @@
+@page "/equipements/{Id:int}"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Components.Shared
+@inject IEquipementService EquipementService
+@inject NavigationManager NavManager
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+@if (_equipement == null)
+{
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+}
+else
+{
+    <MudBreadcrumbs Items="_items" />
+
+    <MudGrid Class="mt-2">
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Class="rounded-lg">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h5" Color="Color.Primary">@_equipement.Code</MudText>
+                        <MudText Typo="Typo.subtitle1">@_equipement.Designation</MudText>
+                    </CardHeaderContent>
+                    <CardHeaderActions>
+                        <MudIconButton Icon="@Icons.Material.Filled.Settings" Color="Color.Default" />
+                    </CardHeaderActions>
+                </MudCardHeader>
+                <MudCardContent>
+                    <MudList T="string" Dense="true">
+                        <MudListItem Icon="@Icons.Material.Filled.LocationOn" Text="@($"Section: {_equipement.Section}")" />
+                        <MudListItem Icon="@Icons.Material.Filled.Label" Text="@($"Marque: {_equipement.Marque ?? "N/A"}")" />
+                        <MudListItem Icon="@Icons.Material.Filled.ModelTraining" Text="@($"Modèle: {_equipement.Modele ?? "N/A"}")" />
+                        <MudListItem Icon="@Icons.Material.Filled.Numbers" Text="@($"S/N: {_equipement.NumeroSerie ?? "N/A"}")" />
+                        <MudListItem Icon="@Icons.Material.Filled.Power" Text="@($"Statut: {(_equipement.IsActive ? "Actif" : "Inactif")}")" />
+                    </MudList>
+                    
+                    <MudDivider Class="my-4" />
+                    <MudText Typo="Typo.subtitle2" Class="mb-2">Caractéristiques Techniques</MudText>
+                    <MudText Typo="Typo.body2">@(_equipement.CaracteristiquesTechniques ?? "Aucune caractéristique renseignée.")</MudText>
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudCard Elevation="2" Class="rounded-lg">
+                <MudCardHeader>
+                    <CardHeaderContent>
+                        <MudText Typo="Typo.h6">Fiche Historique des Interventions</MudText>
+                    </CardHeaderContent>
+                </MudCardHeader>
+                <MudCardContent>
+                    @if (!_equipement.DemandesTravail.Any())
+                    {
+                        <MudAlert Severity="Severity.Info">Aucune intervention enregistrée pour cet équipement.</MudAlert>
+                    }
+                    else
+                    {
+                        <MudTable Items="@_equipement.DemandesTravail.OrderByDescending(d => d.DateEmission)" Hover="true" Dense="true" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>N° DT</MudTh>
+                                <MudTh>Date</MudTh>
+                                <MudTh>Travail Demandé</MudTh>
+                                <MudTh>Statut</MudTh>
+                                <MudTh>Coût</MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd DataLabel="N° DT">
+                                    <MudLink Href="@($"/demandes/{context.Id}")">@context.NumeroDT</MudLink>
+                                </MudTd>
+                                <MudTd DataLabel="Date">@context.DateEmission.ToShortDateString()</MudTd>
+                                <MudTd DataLabel="Travail Demandé">@context.TravailDemande</MudTd>
+                                <MudTd DataLabel="Statut">
+                                    <StatusBadge Statut="@context.Statut" />
+                                </MudTd>
+                                <MudTd DataLabel="Coût">@context.TotalCoutOperation.ToString("N2") DA</MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                    }
+                </MudCardContent>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Equipement? _equipement;
+    private List<BreadcrumbItem> _items = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipement = await EquipementService.GetByIdAsync(Id);
+        
+        _items = new List<BreadcrumbItem>
+        {
+            new BreadcrumbItem("Tableau de Bord", href: "/"),
+            new BreadcrumbItem("Équipements", href: "/equipements"),
+            new BreadcrumbItem(_equipement?.Code ?? "Détails", href: null, disabled: true)
+        };
+    }
+}

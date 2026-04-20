@@ -1,0 +1,48 @@
+@page "/utilisateurs"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IAuthService AuthService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Utilisateurs</MudText>
+
+<MudDataGrid Items="@_users" Hover="true">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Username" Title="Identifiant" />
+        <PropertyColumn Property="x => x.FullName" Title="Nom Complet" />
+        <PropertyColumn Property="x => x.Role" Title="Rôle" />
+        <PropertyColumn Property="x => x.Position" Title="Poste / Qualification" />
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                @* Add Edit/Delete if needed. Keeping it simple for now as requested. *@
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" Disabled="true" />
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Disabled="true" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="User" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<User> _users = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _users = await AuthService.GetAllUsersAsync();
+    }
+}

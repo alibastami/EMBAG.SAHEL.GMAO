@@ -1,0 +1,24 @@
+@inherits LayoutComponentBase
+
+<MudThemeProvider Theme="_theme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+<MudPopoverProvider />
+
+<MudLayout>
+    <MudMainContent Class="d-flex align-center justify-center" Style="min-height: 100vh; background: #E8F5E9;">
+        @Body
+    </MudMainContent>
+</MudLayout>
+
+@code {
+    private MudTheme _theme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#1B5E20",
+            Background = "#E8F5E9",
+            Surface = "#FFFFFF"
+        }
+    };
+}

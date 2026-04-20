@@ -1,0 +1,153 @@
+@page "/login"
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Auth
+@using Sahel.GMAO.Core.Constants
+@attribute [AllowAnonymous]
+@layout Layout.AuthLayout
+@inject IAuthService AuthService
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+
+<div class="login-card">
+    <div class="d-flex flex-column align-center mb-6">
+        <MudIcon Icon="@Icons.Material.Filled.Engineering" Color="Color.Primary" Size="Size.Large" Style="font-size: 4rem;" />
+        <span class="company-text">SAHEL — GMAO</span>
+    </div>
+
+    <div class="text-center mb-8">
+        <span class="app-subtitle">Gestion de Maintenance</span>
+    </div>
+
+    <MudForm @ref="_form" @bind-IsValid="@_success">
+        <MudTextField T="string" 
+                      @bind-Value="_username" 
+                      Label="Nom d'utilisateur" 
+                      Variant="Variant.Outlined" 
+                      FullWidth="true"
+                      Class="mb-4" />
+
+        <MudTextField T="string" 
+                      @bind-Value="_password" 
+                      Label="Mot de passe" 
+                      InputType="@_passwordType"
+                      Variant="Variant.Outlined" 
+                      FullWidth="true"
+                      Adornment="Adornment.End"
+                      AdornmentIcon="@_passwordIcon"
+                      OnAdornmentClick="TogglePasswordVisibility"
+                      Class="mb-6" />
+        
+        <MudButton Variant="Variant.Filled" 
+                   Color="Color.Primary" 
+                   Size="Size.Large" 
+                   FullWidth="true" 
+                   OnClick="LoginAsync" 
+                   Disabled="@_loading">
+            @if (_loading)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+            }
+            else
+            {
+                <MudText>CONNEXION</MudText>
+            }
+        </MudButton>
+
+        @if (_showError)
+        {
+            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">
+                Identifiants incorrects.
+            </MudAlert>
+        }
+    </MudForm>
+</div>
+
+<style>
+    .login-card {
+        max-width: 400px;
+        width: 100%;
+        margin: auto;
+        padding: 40px;
+        background: #FFFFFF;
+        border-radius: 16px;
+        box-shadow: 0 10px 40px rgba(27,94,32,0.2);
+    }
+
+    .company-text {
+        font-size: 24px;
+        font-weight: 800;
+        color: #1B5E20;
+        letter-spacing: 1px;
+    }
+
+    .app-subtitle {
+        font-size: 14px;
+        color: #666;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+    }
+</style>
+
+@code {
+    private MudForm _form = default!;
+    private bool _success;
+    private bool _loading = false;
+    private bool _showError = false;
+    private string _username = "";
+    private string _password = "";
+
+    private InputType _passwordType = InputType.Password;
+    private string _passwordIcon = Icons.Material.Filled.VisibilityOff;
+
+    private void TogglePasswordVisibility()
+    {
+        if (_passwordType == InputType.Password)
+        {
+            _passwordType = InputType.Text;
+            _passwordIcon = Icons.Material.Filled.Visibility;
+        }
+        else
+        {
+            _passwordType = InputType.Password;
+            _passwordIcon = Icons.Material.Filled.VisibilityOff;
+        }
+    }
+
+    private async Task LoginAsync()
+    {
+        _showError = false;
+        await _form.Validate();
+        if (!_success) return;
+
+        _loading = true;
+        try
+        {
+            var user = await AuthService.AuthenticateAsync(_username, _password);
+            if (user != null)
+            {
+                await AuthStateProvider.MarkUserAsAuthenticated(user);
+                
+                // Redirect based on role
+                if (user.Role == AppRoles.Ordonnanceur)
+                    NavManager.NavigateTo("/");
+                else
+                    NavManager.NavigateTo("/"); // Both start at dashboard/dashboard for now
+            }
+            else
+            {
+                _showError = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            _showError = true;
+            Snackbar.Add($"Erreur : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+}

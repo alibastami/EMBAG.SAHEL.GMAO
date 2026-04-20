@@ -1,0 +1,74 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Enums
+@using Sahel.GMAO.Core.Constants
+@inject ISnackbar Snackbar
+@inject IAuthService AuthService
+@inject IDtService DtService
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Class="mr-3 mb-n1" />
+            Assigner un Technicien
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudText Class="mb-4">Assigner un technicien à la demande <b>@Dt.NumeroDT</b> (@Dt.Equipement.Code)</MudText>
+        
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudSelect T="User" Label="Sélectionner le technicien" @bind-Value="_selectedTechnicien" Required="true" RequiredError="Veuillez choisir un technicien">
+                @foreach (var tech in _techniciens)
+                {
+                    <MudSelectItem Value="@tech">@tech.FullName (@tech.Role)</MudSelectItem>
+                }
+            </MudSelect>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Assigner et Lancer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public DemandeTravail Dt { get; set; } = default!;
+    
+    private List<User> _techniciens = new();
+    private User? _selectedTechnicien;
+    
+    private MudForm _form = default!;
+    private bool _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var allUsers = await AuthService.GetAllUsersAsync();
+        _techniciens = allUsers.Where(u => AppRoles.Techniciens.Contains(u.Role)).ToList();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid && _selectedTechnicien != null)
+        {
+            try
+            {
+                // Add as intervenant (assignment)
+                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position);
+                
+                // Update status to EnCours
+                await DtService.UpdateStatusAsync(Dt.Id, StatutDT.EnCours);
+
+                Snackbar.Add($"DT assignée à {_selectedTechnicien.FullName}", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

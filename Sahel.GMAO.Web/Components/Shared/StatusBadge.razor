@@ -1,0 +1,29 @@
+@using Sahel.GMAO.Core.Enums
+
+<MudChip T="string" Color="@GetColor()" Size="Size.Small" Variant="Variant.Filled" Class="font-weight-bold">
+    @GetLabel()
+</MudChip>
+
+@code {
+    [Parameter] public StatutDT Statut { get; set; }
+
+    private Color GetColor() => Statut switch
+    {
+        StatutDT.EnAttente => Color.Warning,
+        StatutDT.EnCours => Color.Info,
+        StatutDT.Terminee => Color.Success,
+        StatutDT.Cloturee => Color.Primary,
+        StatutDT.Annulee => Color.Error,
+        _ => Color.Default
+    };
+
+    private string GetLabel() => Statut switch
+    {
+        StatutDT.EnAttente => "En Attente",
+        StatutDT.EnCours => "En Cours",
+        StatutDT.Terminee => "Terminée",
+        StatutDT.Cloturee => "Clôturée",
+        StatutDT.Annulee => "Annulée",
+        _ => Statut.ToString()
+    };
+}

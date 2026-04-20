@@ -1,0 +1,102 @@
+@page "/demandes"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Enums
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Components.Shared
+@using Sahel.GMAO.Web.Components.Dialogs
+@inject IDtService DtService
+@inject IDialogService DialogService
+@inject NavigationManager NavManager
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Travail</MudText>
+
+<MudDataGrid Items="@_demandes" Filterable="true" Hideable="true" Hover="true" RowClick="@((DataGridRowClickEventArgs<DemandeTravail> e) => OnRowClick(e))">
+    <ToolBarContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouvelle DT</MudButton>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (N°, Équipement, Travail...)" Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.NumeroDT" Title="N° DT" />
+        <PropertyColumn Property="x => x.DateEmission" Title="Date Emission">
+            <CellTemplate>
+                @context.Item.DateEmission.ToShortDateString()
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.Equipement.Code" Title="Équipement" />
+        <PropertyColumn Property="x => x.TravailDemande" Title="Travail Demandé" />
+        <TemplateColumn Title="Statut">
+            <CellTemplate>
+                <StatusBadge Statut="@context.Item.Statut" />
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudTooltip Text="Voir détails">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))" />
+                </MudTooltip>
+                @if (context.Item.Statut == StatutDT.EnAttente)
+                {
+                    <MudTooltip Text="Assigner">
+                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Info" OnClick="@(() => OpenAssignDialog(context.Item))" />
+                    </MudTooltip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="DemandeTravail" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<DemandeTravail> _demandes = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _demandes = await DtService.GetAllAsync();
+    }
+
+    private void ViewDetails(DemandeTravail dt)
+    {
+        NavManager.NavigateTo($"/demandes/{dt.Id}");
+    }
+
+    private void OnRowClick(DataGridRowClickEventArgs<DemandeTravail> args)
+    {
+        ViewDetails(args.Item);
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<NouvelleDTDialog>("Nouvelle Demande de Travail", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenAssignDialog(DemandeTravail dt)
+    {
+        var parameters = new DialogParameters<AssignationDTDialog> { { x => x.Dt, dt } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AssignationDTDialog>("Assigner Techniciens", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadData();
+        }
+    }
+}

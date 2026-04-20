@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Sahel.GMAO.Core/Sahel.GMAO.Core.csproj" />
+  <Project Path="Sahel.GMAO.Infrastructure/Sahel.GMAO.Infrastructure.csproj" />
+  <Project Path="Sahel.GMAO.Web/Sahel.GMAO.Web.csproj" />
+</Solution>

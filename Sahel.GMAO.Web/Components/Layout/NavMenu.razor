@@ -1,0 +1,38 @@
+@using Sahel.GMAO.Core.Constants
+
+<MudNavMenu>
+    <AuthorizeView>
+        <Authorized>
+            @if (context.User.IsInRole(AppRoles.Ordonnanceur))
+            {
+                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">GESTION</MudText>
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Demandes de Travail</MudNavLink>
+                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Équipements</MudNavLink>
+                
+                <MudNavGroup Title="Planning" Icon="@Icons.Material.Filled.Event" Expanded="false">
+                    <MudNavLink Href="/planning/preventif" Icon="@Icons.Material.Filled.CalendarMonth">Préventif</MudNavLink>
+                    <MudNavLink Href="/planning/visites" Icon="@Icons.Material.Filled.FactCheck">Visites Périodique</MudNavLink>
+                </MudNavGroup>
+                
+                <MudNavLink Href="/stock" Icon="@Icons.Material.Filled.Inventory">Stock PDR</MudNavLink>
+                <MudNavLink Href="/fabrication" Icon="@Icons.Material.Filled.Build">Fabrication</MudNavLink>
+                <MudNavLink Href="/travaux" Icon="@Icons.Material.Filled.Task">Travaux</MudNavLink>
+                
+                <MudDivider Class="my-2" />
+                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-1 mb-1">CONFIGURATION</MudText>
+                <MudNavLink Href="/utilisateurs" Icon="@Icons.Material.Filled.People">Utilisateurs</MudNavLink>
+                <MudNavLink Href="/parametres" Icon="@Icons.Material.Filled.Settings">Paramètres</MudNavLink>
+            }
+            else if (context.User.IsInRole(AppRoles.Mecanicien) || context.User.IsInRole(AppRoles.Electricien))
+            {
+                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">MAINTENANCE</MudText>
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PlaylistAddCheck">Mes Tâches</MudNavLink>
+                <MudNavLink Href="/mes-equipements" Icon="@Icons.Material.Filled.Engineering">Mes Équipements</MudNavLink>
+                <MudNavLink Href="/historique" Icon="@Icons.Material.Filled.History">Mon Historique</MudNavLink>
+            }
+            
+            <MudNavLink Href="/notifications" Icon="@Icons.Material.Filled.Notifications">Notifications</MudNavLink>
+        </Authorized>
+    </AuthorizeView>
+</MudNavMenu>

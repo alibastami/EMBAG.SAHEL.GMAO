@@ -1,0 +1,106 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Enums
+@inject ISnackbar Snackbar
+@inject IEquipementService EquipementService
+@inject IDtService DtService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-3 mb-n1" />
+            Nouvelle Demande de Travail
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudAutocomplete T="Equipement" Label="Équipement" @bind-Value="_selectedEquipement"
+                                     SearchFunc="@SearchEquipement" ToStringFunc="@(e => e == null ? null : $"{e.Code} - {e.Designation}")"
+                                     Required="true" RequiredError="L'équipement est requis" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Organe / Partie" @bind-Value="_dt.OrganePartie" Required="true" RequiredError="L'organe est requis" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker Label="Date de Réception Prévue" @bind-Date="_dt.DateReceptionPrevue" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Travail Demandé" @bind-Value="_dt.TravailDemande" 
+                                   Lines="3" Variant="Variant.Outlined" Required="true" RequiredError="La description du travail est requise" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Instructions de Préparation" @bind-Value="_dt.InstructionsPreparation" 
+                                   Lines="2" Variant="Variant.Outlined" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Émettre la DT</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    
+    private DemandeTravail _dt = new();
+    private Equipement? _selectedEquipement;
+    private List<Equipement> _equipements = new();
+    
+    private MudForm _form = default!;
+    private bool _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipements = await EquipementService.GetAllAsync();
+    }
+
+    private Task<IEnumerable<Equipement>> SearchEquipement(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value))
+            return Task.FromResult<IEnumerable<Equipement>>(_equipements);
+        
+        return Task.FromResult<IEnumerable<Equipement>>(_equipements.Where(x => 
+            x.Code.Contains(value, StringComparison.OrdinalIgnoreCase) || 
+            x.Designation.Contains(value, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid && _selectedEquipement != null)
+        {
+            try
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+                
+                if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+                {
+                    _dt.DemandeurId = userId;
+                    _dt.EquipementId = _selectedEquipement.Id;
+                    _dt.Statut = StatutDT.EnAttente;
+                    _dt.DateEmission = DateTime.Now;
+
+                    await DtService.CreateAsync(_dt);
+                    Snackbar.Add("Demande de Travail émise avec succès", Severity.Success);
+                    MudDialog.Close(DialogResult.Ok(true));
+                }
+                else
+                {
+                    Snackbar.Add("Erreur d'authentification", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

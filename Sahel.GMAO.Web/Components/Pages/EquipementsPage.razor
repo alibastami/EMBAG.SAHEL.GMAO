@@ -1,0 +1,136 @@
+@page "/equipements"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Components.Dialogs
+@inject IEquipementService EquipementService
+@inject IDialogService DialogService
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Équipements</MudText>
+
+<MudDataGrid Items="@_equipements" Filterable="true" QuickFilter="@_quickFilter" Hideable="true" Hover="true" RowClick="@((DataGridRowClickEventArgs<Equipement> e) => OnRowClick(e))">
+    <ToolBarContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouveau</MudButton>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (Code, Désignation, Section...)" Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Code" Title="Code" />
+        <PropertyColumn Property="x => x.Designation" Title="Désignation" />
+        <PropertyColumn Property="x => x.Section" Title="Section" />
+        <PropertyColumn Property="x => x.Marque" Title="Marque" />
+        <PropertyColumn Property="x => x.Modele" Title="Modèle" />
+        <TemplateColumn Title="Statut">
+            <CellTemplate>
+                @if (context.Item.IsActive)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Actif</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Inactif</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditDialog(context.Item))" />
+                <MudTooltip Text="Historique">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.History" OnClick="@(() => ViewDetails(context.Item))" />
+                </MudTooltip>
+                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteEquipement(context.Item))" />
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="Equipement" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<Equipement> _equipements = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _equipements = await EquipementService.GetAllAsync();
+    }
+
+    private Func<Equipement, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.Code.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.Designation.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.Section.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.Marque?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            return true;
+
+        return false;
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EquipementDialog>("Nouveau Équipement", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task OpenEditDialog(Equipement equipement)
+    {
+        var parameters = new DialogParameters<EquipementDialog> { { x => x.Equipement, equipement } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Medium, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<EquipementDialog>("Modifier Équipement", parameters, options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadData();
+        }
+    }
+
+    private void ViewDetails(Equipement equipement)
+    {
+        NavManager.NavigateTo($"/equipements/{equipement.Id}");
+    }
+
+    private void OnRowClick(DataGridRowClickEventArgs<Equipement> args)
+    {
+        // ViewDetails(args.Item);
+    }
+
+    private async Task DeleteEquipement(Equipement equipement)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Confirmation", 
+            $"Voulez-vous vraiment supprimer l'équipement {equipement.Code} ?", 
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await EquipementService.DeleteAsync(equipement.Id);
+            Snackbar.Add("Équipement supprimé", Severity.Success);
+            await LoadData();
+        }
+    }
+}

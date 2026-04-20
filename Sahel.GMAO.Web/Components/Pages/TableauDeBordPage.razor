@@ -1,0 +1,111 @@
+@page "/"
+@using Sahel.GMAO.Core.Constants
+@attribute [Authorize]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Tableau de Bord</MudText>
+
+<MudGrid>
+    <AuthorizeView Roles="@AppRoles.Ordonnanceur">
+        <Authorized>
+            @* KPI Row *@
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.h6">24</MudText>
+                        <MudText Typo="Typo.caption">Total DT ce mois</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
+                    <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.h6">8</MudText>
+                        <MudText Typo="Typo.caption">DT en cours</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.h6">3</MudText>
+                        <MudText Typo="Typo.caption">Alertes Stock</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
+                    <div>
+                        <MudText Typo="Typo.h6">92%</MudText>
+                        <MudText Typo="Typo.caption">Taux de réalisation</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+
+            @* Charts placeholder *@
+            <MudItem xs="12" md="8">
+                <MudCard Elevation="2" Class="rounded-lg" Style="height: 400px;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Activités de Maintenance (12 mois)</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <div class="d-flex align-center justify-center" style="height: 300px;">
+                             <MudText Typo="Typo.body2" Color="Color.Secondary">Graphique des interventions apparaîtra ici.</MudText>
+                        </div>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+            
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="rounded-lg" Style="height: 400px;">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Dernières DT</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudList T="string" Dense="true">
+                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Warning">DT-2024-001 - Révision OFFSET</MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Info">DT-2024-002 - Changement Courroie</MudListItem>
+                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Success">DT-2023-085 - Maintenance Préventive</MudListItem>
+                        </MudList>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </Authorized>
+    </AuthorizeView>
+
+    <AuthorizeView Roles="@string.Join(',', AppRoles.Techniciens)">
+        <Authorized>
+            <MudItem xs="12">
+                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
+                    Bienvenue @context.User.FindFirst("FullName")?.Value. Vous avez <strong>2</strong> tâches assignées en attente.
+                </MudAlert>
+            </MudItem>
+            
+            <MudItem xs="12" md="6">
+                <MudCard Elevation="2" Class="rounded-lg">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Mes Tâches Prioritaires</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                         <MudList T="string">
+                             <MudListItem Icon="@Icons.Material.Filled.Build" Text="Réparation Pompe P-102" />
+                             <MudListItem Icon="@Icons.Material.Filled.ElectricalServices" Text="Contrôle Armoire A-05" />
+                         </MudList>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/demandes">Voir tout</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </Authorized>
+    </AuthorizeView>
+</MudGrid>

@@ -1,0 +1,80 @@
+@page "/stock"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IStockService StockService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Stock Pièces de Rechange (PDR)</MudText>
+
+<MudDataGrid Items="@_articles" Filterable="true" QuickFilter="@_quickFilter" Hover="true">
+    <ToolBarContent>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (Code, Désignation...)" Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.CodeArticle" Title="Code" />
+        <PropertyColumn Property="x => x.ReferenceConstructeur" Title="Réf. Constructeur" />
+        <PropertyColumn Property="x => x.Designation" Title="Désignation" />
+        <PropertyColumn Property="x => x.Unite" Title="Unité" />
+        <PropertyColumn Property="x => x.QuantiteEnStock" Title="Stock Actuel">
+            <CellTemplate>
+                <MudText Color="@(context.Item.QuantiteEnStock <= context.Item.SeuilAlerte ? Color.Error : Color.Default)" Class="@(context.Item.QuantiteEnStock <= context.Item.SeuilAlerte ? "font-weight-bold" : "")">
+                    @context.Item.QuantiteEnStock @context.Item.Unite
+                    @if (context.Item.QuantiteEnStock <= context.Item.SeuilAlerte)
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Size="Size.Small" Class="ml-2 mb-n1" />
+                    }
+                </MudText>
+            </CellTemplate>
+        </PropertyColumn>
+        <PropertyColumn Property="x => x.SeuilAlerte" Title="Seuil Alerte" />
+        <PropertyColumn Property="x => x.PrixUnitaire" Title="P.U (DA)">
+            <CellTemplate>
+                @context.Item.PrixUnitaire.ToString("N2")
+            </CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Valeur Totale">
+            <CellTemplate>
+                @(( (decimal)context.Item.QuantiteEnStock * context.Item.PrixUnitaire ).ToString("N2")) DA
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="ArticlePdr" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<ArticlePdr> _articles = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _articles = await StockService.GetAllAsync();
+    }
+
+    private Func<ArticlePdr, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.CodeArticle.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.Designation.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.ReferenceConstructeur?.Contains(_searchString, StringComparison.OrdinalIgnoreCase) ?? false)
+            return true;
+
+        return false;
+    };
+}
