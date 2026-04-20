@@ -7,6 +7,8 @@
 @inject IDtService DtService
 @inject IDialogService DialogService
 @inject NavigationManager NavManager
+@inject IPdfService PdfService
+@inject IJSRuntime JSRuntime
 @attribute [Authorize(Roles = "Ordonnanceur")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Travail</MudText>
@@ -36,6 +38,9 @@
             <CellTemplate>
                 <MudTooltip Text="Voir détails">
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Imprimer DT (PDF)">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
                 </MudTooltip>
                 @if (context.Item.Statut == StatutDT.EnAttente)
                 {
@@ -98,5 +103,13 @@
         {
             await LoadData();
         }
+    }
+
+    private async Task DownloadPdf(DemandeTravail dt)
+    {
+        var pdfBytes = await PdfService.GenerateDtPdfAsync(dt);
+        var fileName = $"{dt.NumeroDT}.pdf";
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }

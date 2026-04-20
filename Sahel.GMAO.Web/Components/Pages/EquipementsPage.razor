@@ -6,6 +6,9 @@
 @inject IDialogService DialogService
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
+@inject IPdfService PdfService
+@inject IJSRuntime JSRuntime
+@inject IDtService DtService
 @attribute [Authorize(Roles = "Ordonnanceur")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Équipements</MudText>
@@ -38,8 +41,11 @@
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate>
                 <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditDialog(context.Item))" />
-                <MudTooltip Text="Historique">
+                <MudTooltip Text="Historique (Détails)">
                     <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.History" OnClick="@(() => ViewDetails(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Imprimer Fiche Historique (PDF)">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadHistoryPdf(context.Item))" />
                 </MudTooltip>
                 <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteEquipement(context.Item))" />
             </CellTemplate>
@@ -132,5 +138,17 @@
             Snackbar.Add("Équipement supprimé", Severity.Success);
             await LoadData();
         }
+    }
+
+    private async Task DownloadHistoryPdf(Equipement equipement)
+    {
+        // Load full DT history for this equipment
+        var allDts = await DtService.GetAllAsync();
+        var equipmentHistory = allDts.Where(d => d.EquipementId == equipement.Id).ToList();
+        
+        var pdfBytes = await PdfService.GenerateEquipementHistoryPdfAsync(equipement, equipmentHistory);
+        var fileName = $"HISTO_{equipement.Code}.pdf";
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }
 }

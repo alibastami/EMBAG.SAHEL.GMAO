@@ -17,6 +17,7 @@ public class GmaoDbContext : DbContext
     public DbSet<InterventionRole> InterventionRoles { get; set; }
     public DbSet<MaintenancePreventive> MaintenancePreventives { get; set; }
     public DbSet<RapportIncident> RapportsIncidents { get; set; }
+    public DbSet<DemandeFabrication> DemandesFabrication { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +110,17 @@ public class GmaoDbContext : DbContext
             entity.HasOne(r => r.Redacteur)
                 .WithMany()
                 .HasForeignKey(r => r.RedacteurId);
+        });
+
+        modelBuilder.Entity<DemandeFabrication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.NumeroFabrication).IsUnique();
+
+            entity.HasOne(f => f.Equipement)
+                .WithMany()
+                .HasForeignKey(f => f.EquipementId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

@@ -1,0 +1,83 @@
+@page "/planning"
+@page "/planning/preventif"
+@page "/planning/visites"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IMaintenanceService MaintenanceService
+@inject IPdfService PdfService
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Planning de Maintenance</MudText>
+
+<MudPaper Class="pa-4 mb-6" Elevation="0">
+    <div class="d-flex align-center gap-4">
+        <MudIcon Icon="@Icons.Material.Filled.CalendarMonth" Color="Color.Primary" Size="Size.Large" />
+        <div>
+            <MudText Typo="Typo.h6">Échéancier Prévisionnel</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">Visualisation des opérations de maintenance programmées par mois.</MudText>
+        </div>
+        <MudSpacer />
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Secondary" OnClick="DownloadPlanningPdf">Exporter Planning PDF</MudButton>
+    </div>
+</MudPaper>
+
+@foreach (var monthGroup in _groupedPlanning.OrderBy(g => g.Key))
+{
+    <MudText Typo="Typo.h6" Class="mt-6 mb-2" Color="Color.Primary">@monthGroup.Key.ToString("MMMM yyyy").ToUpper()</MudText>
+    <MudGrid>
+        @foreach (var item in monthGroup.OrderBy(i => i.DateProchaineEcheance))
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="2" Class="border-l-4" Style="@($"border-left-color: {GetColor(item.DateProchaineEcheance)}")">
+                    <MudCardContent>
+                        <div class="d-flex justify-space-between align-start">
+                            <MudText Typo="Typo.subtitle1" Class="font-weight-bold">@item.Equipement.Code</MudText>
+                            <MudText Typo="Typo.body2" Class="font-weight-bold">@item.DateProchaineEcheance.ToString("dd/MM")</MudText>
+                        </div>
+                        <MudText Typo="Typo.body2" Class="mb-2">@item.Operation</MudText>
+                        <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@item.Equipement.Section</MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+
+@code {
+    private List<MaintenancePreventive> _preventives = new();
+    private IEnumerable<IGrouping<DateTime, MaintenancePreventive>> _groupedPlanning = Enumerable.Empty<IGrouping<DateTime, MaintenancePreventive>>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _preventives = await MaintenanceService.GetAllPreventiveAsync();
+        
+        // Group by Month/Year (Normalization to 1st of month for grouping)
+        _groupedPlanning = _preventives
+            .Where(m => m.IsActive)
+            .GroupBy(m => new DateTime(m.DateProchaineEcheance.Year, m.DateProchaineEcheance.Month, 1));
+    }
+
+    private string GetColor(DateTime date)
+    {
+        if (date < DateTime.Today) return "#D32F2F"; // Material Red
+        if (date < DateTime.Today.AddDays(7)) return "#F57C00"; // Material Orange
+        return "#388E3C"; // Material Green
+    }
+
+    private async Task DownloadPlanningPdf()
+    {
+        // For planning, we might need a specific PDF method in IPdfService
+        // But for now, we can reuse history or state logic if applicable
+        // await PdfService.GeneratePlanningPdfAsync(_preventives);
+    }
+}
+
+<style>
+    .border-l-4 { border-left-width: 4px; }
+</style>

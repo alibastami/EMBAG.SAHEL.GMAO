@@ -1,0 +1,100 @@
+@page "/fabrication"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IFabricationService FabricationService
+@inject IPdfService PdfService
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Fabrication</MudText>
+
+<MudDataGrid Items="@_fabrications" Filterable="true" Hover="true">
+    <ToolBarContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Nouvelle Demande</MudButton>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
+                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.NumeroFabrication" Title="N° Fab" />
+        <PropertyColumn Property="x => x.Equipement.Code" Title="Équipement" />
+        <PropertyColumn Property="x => x.DesignationPiece" Title="Pièce" />
+        <PropertyColumn Property="x => x.Quantite" Title="Qté" />
+        <PropertyColumn Property="x => x.DateSouhaitee" Title="Échéance">
+            <CellTemplate>@context.Item.DateSouhaitee.ToShortDateString()</CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Statut">
+            <CellTemplate>
+                <MudChip T="string" Color="@GetStatutColor(context.Item.Statut)" Size="Size.Small">@context.Item.Statut</MudChip>
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudTooltip Text="Imprimer Bon de Fabrication">
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Changer Statut">
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert">
+                        <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.EnCours))">En Cours</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.Terminee))">Terminée</MudMenuItem>
+                    </MudMenu>
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="DemandeFabrication" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<DemandeFabrication> _fabrications = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _fabrications = await FabricationService.GetAllAsync();
+    }
+
+    private Color GetStatutColor(StatutFabrication statut) => statut switch
+    {
+        StatutFabrication.EnAttente => Color.Default,
+        StatutFabrication.Validee => Color.Info,
+        StatutFabrication.EnCours => Color.Warning,
+        StatutFabrication.Terminee => Color.Success,
+        _ => Color.Default
+    };
+
+    private async Task OpenCreateDialog()
+    {
+        // Simple mock for now, ideally a full dialog
+        var newDf = new DemandeFabrication 
+        { 
+            EquipementId = 1, // Placeholder
+            DesignationPiece = "Axe Turbine", 
+            Quantite = 1, 
+            DateSouhaitee = DateTime.Now.AddDays(7) 
+        };
+        await FabricationService.CreateAsync(newDf);
+        await LoadData();
+    }
+
+    private async Task UpdateStatus(DemandeFabrication df, StatutFabrication newStatus)
+    {
+        await FabricationService.UpdateStatusAsync(df.Id, newStatus);
+        await LoadData();
+    }
+
+    private async Task DownloadPdf(DemandeFabrication df)
+    {
+        var pdfBytes = await PdfService.GenerateFabricationPdfAsync(df);
+        var fileName = $"FAB_{df.NumeroFabrication}.pdf";
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+}
