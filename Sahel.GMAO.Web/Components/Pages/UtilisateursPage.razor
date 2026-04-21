@@ -1,6 +1,7 @@
 @page "/utilisateurs"
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Components.Dialogs
 @inject IAuthService AuthService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -8,8 +9,11 @@
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Utilisateurs</MudText>
 
-<MudDataGrid Items="@_users" Hover="true">
+<MudDataGrid Items="@_users" Hover="true" Loading="@_loading" Filterable="true" QuickFilter="@_quickFilter">
     <ToolBarContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddUser" Class="mr-4">
+            Nouvel Utilisateur
+        </MudButton>
         <MudSpacer />
         <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -21,9 +25,12 @@
         <PropertyColumn Property="x => x.Position" Title="Poste / Qualification" />
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate>
-                @* Add Edit/Delete if needed. Keeping it simple for now as requested. *@
-                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" Disabled="true" />
-                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Disabled="true" />
+                <MudTooltip Text="Modifier">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditUser(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Supprimer">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteUser(context.Item))" />
+                </MudTooltip>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -35,6 +42,7 @@
 @code {
     private List<User> _users = new();
     private string _searchString = "";
+    private bool _loading = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -43,6 +51,93 @@
 
     private async Task LoadData()
     {
+        _loading = true;
         _users = await AuthService.GetAllUsersAsync();
+        _loading = false;
+    }
+
+    private Func<User, bool> _quickFilter => x =>
+    {
+        if (string.IsNullOrWhiteSpace(_searchString))
+            return true;
+
+        if (x.Username.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.FullName.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        if (x.Role.Contains(_searchString, StringComparison.OrdinalIgnoreCase))
+            return true;
+
+        return false;
+    };
+
+    private async Task OnAddUser()
+    {
+        var parameters = new DialogParameters<UserDialog>
+        {
+            { x => x.User, new User() },
+            { x => x.IsEdit, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDialog>("Ajouter un utilisateur", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var data = ((User user, string password))result.Data!;
+            await AuthService.CreateUserAsync(data.user, data.password);
+            Snackbar.Add("Utilisateur créé avec succès", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OnEditUser(User user)
+    {
+        // Clone to avoid direct editing
+        var userClone = new User
+        {
+            Id = user.Id,
+            Username = user.Username,
+            FullName = user.FullName,
+            Role = user.Role,
+            Position = user.Position,
+            CanManageUsers = user.CanManageUsers,
+            CanEditInventory = user.CanEditInventory,
+            CanViewAudit = user.CanViewAudit
+        };
+
+        var parameters = new DialogParameters<UserDialog>
+        {
+            { x => x.User, userClone },
+            { x => x.IsEdit, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<UserDialog>("Modifier l'utilisateur", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var data = ((User updatedUser, string password))result.Data!;
+            await AuthService.UpdateUserAsync(data.updatedUser, string.IsNullOrWhiteSpace(data.password) ? null : data.password);
+            Snackbar.Add("Utilisateur mis à jour avec succès", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OnDeleteUser(User user)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer l'utilisateur {user.Username} ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await AuthService.DeleteUserAsync(user.Id);
+            Snackbar.Add("Utilisateur supprimé", Severity.Success);
+            await LoadData();
+        }
     }
 }

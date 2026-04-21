@@ -1,0 +1,135 @@
+@page "/parametres"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Web.Components.Dialogs
+@inject INatureTravailService NatureService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Configuration du Système</MudText>
+
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="Natures de Travail" Icon="@Icons.Material.Filled.Category">
+        <MudDataGrid Items="@_natures" Hover="true" Loading="@_loadingNatures">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNature" Class="mr-4">
+                    Ajouter une Nature
+                </MudButton>
+                <MudSpacer />
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                <PropertyColumn Property="x => x.Description" Title="Description" />
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudTooltip Text="Modifier">
+                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditNature(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Supprimer">
+                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteNature(context.Item))" />
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+    
+    <MudTabPanel Text="Général" Icon="@Icons.Material.Filled.Settings">
+        <MudText Typo="Typo.h6" Class="mb-4">Informations sur l'application</MudText>
+        <MudPaper Class="pa-4">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Nom de l'entreprise" Value="@("EMBAG SAHEL")" ReadOnly="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Business" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Version" Value="@("v2.0.0-stable")" ReadOnly="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Info" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
+                        Cette section permettra de configurer les seuils d'alerte et les paramètres de messagerie dans les futures versions.
+                    </MudAlert>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    </MudTabPanel>
+</MudTabs>
+
+@code {
+    private List<NatureTravail> _natures = new();
+    private bool _loadingNatures = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadNatures();
+    }
+
+    private async Task LoadNatures()
+    {
+        _loadingNatures = true;
+        _natures = await NatureService.GetAllAsync();
+        _loadingNatures = false;
+    }
+
+    private async Task OnAddNature()
+    {
+        var parameters = new DialogParameters<NatureTravailDialog>
+        {
+            { x => x.Nature, new NatureTravail() },
+            { x => x.IsEdit, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Nouvelle Nature", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var nature = (NatureTravail)result.Data!;
+            await NatureService.CreateAsync(nature);
+            Snackbar.Add("Nature de travail créée", Severity.Success);
+            await LoadNatures();
+        }
+    }
+
+    private async Task OnEditNature(NatureTravail nature)
+    {
+        var natureClone = new NatureTravail
+        {
+            Id = nature.Id,
+            Nom = nature.Nom,
+            Description = nature.Description
+        };
+
+        var parameters = new DialogParameters<NatureTravailDialog>
+        {
+            { x => x.Nature, natureClone },
+            { x => x.IsEdit, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Modifier la Nature", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var updatedNature = (NatureTravail)result.Data!;
+            await NatureService.UpdateAsync(updatedNature);
+            Snackbar.Add("Nature de travail mise à jour", Severity.Success);
+            await LoadNatures();
+        }
+    }
+
+    private async Task OnDeleteNature(NatureTravail nature)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer la nature '{nature.Nom}' ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await NatureService.DeleteAsync(nature.Id);
+            Snackbar.Add("Nature de travail supprimée", Severity.Success);
+            await LoadNatures();
+        }
+    }
+}

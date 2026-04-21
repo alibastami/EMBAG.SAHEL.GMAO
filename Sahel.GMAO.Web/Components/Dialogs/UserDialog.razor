@@ -1,0 +1,73 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.PersonAdd)" Class="mr-3 mb-n1" />
+            @(IsEdit ? "Modifier l'utilisateur" : "Nouvel utilisateur")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Identifiant" @bind-Value="User.Username" Required="true" RequiredError="L'identifiant est requis" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Nom Complet" @bind-Value="User.FullName" Required="true" RequiredError="Le nom complet est requis" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="string" Label="Rôle" @bind-Value="User.Role" Required="true">
+                        <MudSelectItem Value="@("Ordonnanceur")">Ordonnanceur</MudSelectItem>
+                        <MudSelectItem Value="@("Mecanicien")">Mécanicien</MudSelectItem>
+                        <MudSelectItem Value="@("Electricien")">Électricien</MudSelectItem>
+                        <MudSelectItem Value="@("Executant")">Exécutant</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Poste / Qualification" @bind-Value="User.Position" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="@(IsEdit ? "Nouveau Mot de Passe (laisser vide pour inchangé)" : "Mot de Passe")" 
+                                  @bind-Value="_password" InputType="InputType.Password" 
+                                  Required="@(!IsEdit)" RequiredError="Le mot de passe est requis" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudText Typo="Typo.subtitle2" Class="mt-4">Privilèges</MudText>
+                    <MudDivider Class="mb-2" />
+                    <MudCheckBox T="bool" @bind-Value="User.CanManageUsers" Label="Gérer les utilisateurs" Color="Color.Primary" />
+                    <MudCheckBox T="bool" @bind-Value="User.CanEditInventory" Label="Gérer le stock" Color="Color.Primary" />
+                    <MudCheckBox T="bool" @bind-Value="User.CanViewAudit" Label="Consulter l'audit" Color="Color.Primary" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Enregistrer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public User User { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private string _password = "";
+    private bool _success;
+    private MudForm _form = null!;
+
+    void Cancel() => MudDialog.Cancel();
+
+    void Submit()
+    {
+        // For password handling, we pass it back via a tuple or handle it in the parent
+        // But here we'll just return the user and the password separately if needed
+        // Or we can just ensure the parent knows what to do.
+        MudDialog.Close(DialogResult.Ok((User, _password)));
+    }
+}

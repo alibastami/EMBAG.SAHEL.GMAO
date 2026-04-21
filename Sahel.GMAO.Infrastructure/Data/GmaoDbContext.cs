@@ -18,6 +18,7 @@ public class GmaoDbContext : DbContext
     public DbSet<MaintenancePreventive> MaintenancePreventives { get; set; }
     public DbSet<RapportIncident> RapportsIncidents { get; set; }
     public DbSet<DemandeFabrication> DemandesFabrication { get; set; }
+    public DbSet<NatureTravail> NaturesTravail { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
