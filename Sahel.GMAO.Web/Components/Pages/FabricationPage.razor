@@ -4,11 +4,12 @@
 @inject IFabricationService FabricationService
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
-@attribute [Authorize(Roles = "Ordonnanceur")]
+@inject NavigationManager NavManager
+@attribute [Authorize(Roles = "DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Fabrication</MudText>
 
-<MudDataGrid Items="@_fabrications" Filterable="true" Hover="true">
+<MudDataGrid Items="@_fabrications" Filterable="true" Hover="true" RowClick="@((DataGridRowClickEventArgs<DemandeFabrication> e) => OnRowClick(e))">
     <ToolBarContent>
         <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Nouvelle Demande</MudButton>
         <MudSpacer />
@@ -20,8 +21,8 @@
         <PropertyColumn Property="x => x.Equipement.Code" Title="Équipement" />
         <PropertyColumn Property="x => x.DesignationPiece" Title="Pièce" />
         <PropertyColumn Property="x => x.Quantite" Title="Qté" />
-        <PropertyColumn Property="x => x.DateSouhaitee" Title="Échéance">
-            <CellTemplate>@context.Item.DateSouhaitee.ToShortDateString()</CellTemplate>
+        <PropertyColumn Property="x => x.DegreUrgenceImmediat" Title="Urgence">
+            <CellTemplate>@(context.Item.DegreUrgenceImmediat ? "Immédiat" : "Programmé")</CellTemplate>
         </PropertyColumn>
         <TemplateColumn Title="Statut">
             <CellTemplate>
@@ -30,6 +31,9 @@
         </TemplateColumn>
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate>
+                <MudTooltip Text="Voir détails">
+                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))" />
+                </MudTooltip>
                 <MudTooltip Text="Imprimer Bon de Fabrication">
                     <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
                 </MudTooltip>
@@ -78,7 +82,7 @@
             EquipementId = 1, // Placeholder
             DesignationPiece = "Axe Turbine", 
             Quantite = 1, 
-            DateSouhaitee = DateTime.Now.AddDays(7) 
+            DegreUrgenceImmediat = false 
         };
         await FabricationService.CreateAsync(newDf);
         await LoadData();
@@ -96,5 +100,15 @@
         var fileName = $"FAB_{df.NumeroFabrication}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
         await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+
+    private void ViewDetails(DemandeFabrication df)
+    {
+        NavManager.NavigateTo($"/fabrication/{df.Id}");
+    }
+
+    private void OnRowClick(DataGridRowClickEventArgs<DemandeFabrication> args)
+    {
+        ViewDetails(args.Item);
     }
 }

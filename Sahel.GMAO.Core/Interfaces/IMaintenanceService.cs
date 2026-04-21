@@ -12,4 +12,11 @@ public interface IMaintenanceService
     Task UpdatePreventiveAsync(MaintenancePreventive mp);
     Task CreatePreventiveAsync(MaintenancePreventive mp);
     Task DeletePreventiveAsync(int id);
+
+    // Fiche Entretien Preventif
+    Task<List<FicheEntretienPreventif>> GetAllFichesAsync();
+    Task<FicheEntretienPreventif?> GetFicheByIdAsync(int id);
+    Task<FicheEntretienPreventif> GenerateFicheFromScheduleAsync(int maintenanceId);
+    Task UpdateFicheExecutionAsync(FicheEntretienPreventif fiche);
+    Task DeleteFicheAsync(int id);
 }

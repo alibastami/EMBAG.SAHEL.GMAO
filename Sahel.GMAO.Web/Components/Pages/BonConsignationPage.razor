@@ -1,0 +1,131 @@
+@page "/consignations"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Constants
+@using Sahel.GMAO.Web.Components.Dialogs
+@inject IConsignationService ConsignationService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+@inject IJSRuntime JSRuntime
+@inject IPdfService PdfService
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Roles = "DSI, Executant")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Bons de Consignation</MudText>
+
+<MudDataGrid T="BonDeConsignation" Items="@_bons" Filterable="true" Hover="true">
+    <ToolBarContent>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Lock" OnClick="OpenCreateDialog">Consigner Équipement</MudButton>
+        <MudSpacer />
+        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
+                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+    </ToolBarContent>
+    <Columns>
+        <PropertyColumn Property="x => x.Equipement.Code" Title="Code Eq." />
+        <PropertyColumn Property="x => x.Equipement.Designation" Title="Équipement" />
+        <PropertyColumn Property="x => x.Atelier" Title="Atelier" />
+        <PropertyColumn Property="x => x.DateHeureConsignation" Title="Consignation">
+            <CellTemplate>
+                @context.Item.DateHeureConsignation?.ToString("dd/MM/yyyy HH:mm")
+            </CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Statut">
+            <CellTemplate>
+                @if (context.Item.DateHeureDeconsignation.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Déconsigné</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Error" Size="Size.Small">Consigné</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudTooltip Text="Imprimer Bon (PDF)">
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
+                </MudTooltip>
+                @if (!context.Item.DateHeureDeconsignation.HasValue)
+                {
+                    <MudTooltip Text="Déconsigner">
+                        <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Warning" OnClick="@(() => Deconsigner(context.Item))" />
+                    </MudTooltip>
+                }
+                <MudTooltip Text="Supprimer">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteBon(context.Item))" />
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="BonDeConsignation" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<BonDeConsignation> _bons = new();
+    private string _searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _bons = await ConsignationService.GetAllAsync();
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConsignationDialog>("Nouvelle Consignation", options);
+        var result = await dialog.Result;
+
+        if (result is { Canceled: false })
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task Deconsigner(BonDeConsignation bon)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Déconsignation", 
+            $"Voulez-vous déconsigner l'équipement {bon.Equipement.Code} ?", 
+            yesText:"Déconsigner", cancelText:"Annuler");
+
+        if (result == true)
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            // In a real app we'd get the actual user entity ID
+            await ConsignationService.DeconsignerAsync(bon.Id, 1); 
+            Snackbar.Add("Équipement déconsigné", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task DeleteBon(BonDeConsignation bon)
+    {
+        bool? result = await DialogService.ShowMessageBox(
+            "Supprimer", 
+            "Voulez-vous vraiment supprimer ce bon ?", 
+            yesText:"Supprimer", cancelText:"Annuler");
+
+        if (result == true)
+        {
+            await ConsignationService.DeleteAsync(bon.Id);
+            Snackbar.Add("Bon supprimé", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task DownloadPdf(BonDeConsignation bon)
+    {
+        // This will need the IPdfService update
+        Snackbar.Add("Génération du PDF en cours...", Severity.Info);
+        // var pdfBytes = await PdfService.GenerateConsignationPdfAsync(bon);
+        // ...
+    }
+}

@@ -1,0 +1,190 @@
+@page "/fabrication/{Id:int}"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IFabricationService FabricationService
+@inject IAuthService AuthService
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@inject IPdfService PdfService
+@inject IJSRuntime JSRuntime
+@attribute [Authorize(Roles = "DSI, Executant")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-6 rounded-lg" Elevation="2">
+        @if (_df == null)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        }
+        else
+        {
+            <div class="d-flex justify-space-between align-center mb-6">
+                <div>
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold">Fabrication @(_df.NumeroFabrication)</MudText>
+                    <MudText Typo="Typo.subtitle1">Destination: <b>@(_df.Equipement?.Designation)</b> (@(_df.Equipement?.Code))</MudText>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Outlined" OnClick="Back" StartIcon="@Icons.Material.Filled.ArrowBack">Retour</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Info" OnClick="DownloadPdf" StartIcon="@Icons.Material.Filled.Print">Imprimer</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" StartIcon="@Icons.Material.Filled.Save">Enregistrer</MudButton>
+                </div>
+            </div>
+
+            <MudTabs Elevation="0" Outlined="true" Rounded="true" Color="Color.Primary">
+                <MudTabPanel Text="Général" Icon="@Icons.Material.Filled.Info">
+                    <MudGrid Class="pt-4">
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_df.DesignationPiece" Label="Pièce à fabriquer" Required="true" />
+                        </MudItem>
+                        <MudItem xs="12" sm="6">
+                            <MudTextField @bind-Value="_df.ReferencePiece" Label="Référence Pièce" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudNumericField @bind-Value="_df.Quantite" Label="Quantité" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudTextField @bind-Value="_df.NDessin" Label="N° Dessin" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudTextField @bind-Value="_df.Matiere" Label="Matière" />
+                        </MudItem>
+                        <MudItem xs="12" sm="3">
+                            <MudSwitch @bind-Value="_df.DegreUrgenceImmediat" Label="Urgence Immédiate" Color="Color.Error" />
+                        </MudItem>
+                    </MudGrid>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Préparation (Coûts)" Icon="@Icons.Material.Filled.AttachMoney">
+                    <div class="pt-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Matières & Consommables (BSM)</MudText>
+                        <MudTable Items="@_df.MatieresConsommees" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>N° BSM</MudTh>
+                                <MudTh>Désignation</MudTh>
+                                <MudTh>Prix (DA)</MudTh>
+                                <MudTh>Obs</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><MudTextField @bind-Value="context.N_BSM" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudTextField @bind-Value="context.DesignationMatiere" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="decimal" @bind-Value="context.Prix" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudTextField @bind-Value="context.Observation" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _df.MatieresConsommees.Remove(context))" /></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddMatiere">Ajouter Matière</MudButton>
+
+                        <MudDivider Class="my-6" />
+
+                        <MudText Typo="Typo.h6" Class="mb-3">Main d'œuvre Prévisionnelle</MudText>
+                        <MudTable Items="@_df.Intervenants" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0">
+                            <HeaderContent>
+                                <MudTh>Nom & Prénom</MudTh>
+                                <MudTh>H.H</MudTh>
+                                <MudTh>Taux</MudTh>
+                                <MudTh>Total</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd><MudTextField @bind-Value="context.NomsEtPrenoms" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.NombreHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="decimal" @bind-Value="context.CoutHoraire" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><b>@((context.Total).ToString("N2"))</b></MudTd>
+                                <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _df.Intervenants.Remove(context))" /></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddIntervenant">Ajouter Intervenant</MudButton>
+                    </div>
+                </MudTabPanel>
+
+                <MudTabPanel Text="Exécution (Machines)" Icon="@Icons.Material.Filled.PrecisionManufacturing">
+                    <div class="pt-4">
+                        <MudText Typo="Typo.h6" Class="mb-3">Pointage Heures Machines / Agents</MudText>
+                        <MudTable Items="@_df.PointagesMachines" Dense="true" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="machine-grid">
+                            <HeaderContent>
+                                <MudTh>Agent</MudTh>
+                                <MudTh>T200</MudTh>
+                                <MudTh>T250</MudTh>
+                                <MudTh>T300</MudTh>
+                                <MudTh>Frais.</MudTh>
+                                <MudTh>Et.Lim</MudTh>
+                                <MudTh>Aff.</MudTh>
+                                <MudTh>Soud.</MudTh>
+                                <MudTh>Autres</MudTh>
+                                <MudTh></MudTh>
+                            </HeaderContent>
+                            <RowTemplate>
+                                <MudTd>
+                                    <MudSelect T="int" @bind-Value="context.IntervenantId" Dense="true" Margin="Margin.Dense">
+                                        @foreach (var u in _users) { <MudSelectItem T="int" Value="@u.Id">@u.FullName</MudSelectItem> }
+                                    </MudSelect>
+                                </MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.Tour200Heures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.Tour250Heures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.Tour300Heures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.FraisageHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.EtauLimeurHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.AffutageHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.SoudureHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudNumericField T="double" @bind-Value="context.AutresHeures" Margin="Margin.Dense" /></MudTd>
+                                <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => _df.PointagesMachines.Remove(context))" /></MudTd>
+                            </RowTemplate>
+                        </MudTable>
+                        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Add" OnClick="AddMachinePointage">Ajouter Pointage Agent</MudButton>
+                    </div>
+                </MudTabPanel>
+            </MudTabs>
+        }
+    </MudPaper>
+</MudContainer>
+
+<style>
+    .machine-grid .mud-table-cell { padding: 4px !important; min-width: 60px; }
+</style>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private DemandeFabrication? _df;
+    private List<User> _users = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _df = await FabricationService.GetByIdAsync(Id);
+        _users = await AuthService.GetAllUsersAsync();
+    }
+
+    private void AddMatiere() => _df?.MatieresConsommees.Add(new MatiereFabrication { DemandeFabricationId = Id });
+    private void AddIntervenant() => _df?.Intervenants.Add(new IntervenantFabrication { DemandeFabricationId = Id, CoutHoraire = 500 });
+    private void AddMachinePointage() => _df?.PointagesMachines.Add(new PointageMachineFabrication { DemandeFabricationId = Id });
+
+    private void Back() => NavManager.NavigateTo("/fabrication");
+
+    private async Task Save()
+    {
+        if (_df == null) return;
+        try
+        {
+            await FabricationService.UpdateAsync(_df);
+            Snackbar.Add("Enregistré avec succès", Severity.Success);
+            await LoadData();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (_df == null) return;
+        var pdfBytes = await PdfService.GenerateFabricationPdfAsync(_df);
+        var fileName = $"{_df.NumeroFabrication}.pdf";
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+}

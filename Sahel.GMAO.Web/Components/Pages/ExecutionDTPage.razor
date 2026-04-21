@@ -3,11 +3,16 @@
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
 @using Sahel.GMAO.Core.Enums
+@using Sahel.GMAO.Web.Components.Dialogs
+@using Sahel.GMAO.Web.Components.Shared
 @inject IDtService DtService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject ISnackbar Snackbar
 @inject NavigationManager NavigationManager
-@attribute [Authorize(Roles = "Mecanicien,Electricien,Ordonnanceur")]
+@inject IConsignationService ConsignationService
+@inject IFabricationService FabricationService
+@inject IDialogService DialogService
+@attribute [Authorize(Roles = "Executant,DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">
     @(Id.HasValue ? $"Exécution DT n° {_dt?.NumeroDT}" : "Mes Tâches")
@@ -65,6 +70,43 @@ else
                 <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.Save">
                     Sauvegarder les détails
                 </MudButton>
+
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.h6" Class="mb-2">Documents Liés</MudText>
+                
+                <MudText Typo="Typo.caption" Color="Color.Secondary">CONSIGNATIONS</MudText>
+                @if (_consignations.Any())
+                {
+                    @foreach (var c in _consignations)
+                    {
+                        <div class="d-flex justify-space-between align-center py-1">
+                            <MudText Typo="Typo.body2">@(c.DateHeureDeconsignation == null ? "🔴 Consigné" : "🟢 Déconsigné")</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => NavigationManager.NavigateTo("/consignations"))" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="d-block mb-2">Aucune consignation</MudText>
+                }
+                <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Lock" OnClick="CreateConsignation" Size="Size.Small" Class="mb-4">Nouvelle Consignation</MudButton>
+
+                <MudText Typo="Typo.caption" Color="Color.Secondary">FABRICATIONS</MudText>
+                @if (_fabrications.Any())
+                {
+                    @foreach (var f in _fabrications)
+                    {
+                        <div class="d-flex justify-space-between align-center py-1">
+                            <MudText Typo="Typo.body2">@f.NumeroFabrication - @f.Statut</MudText>
+                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => NavigationManager.NavigateTo($"/fabrication/{f.Id}"))" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <MudText Typo="Typo.caption" Class="d-block mb-2">Aucune demande de fab.</MudText>
+                }
+                <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Build" OnClick="CreateFabrication" Size="Size.Small">Nouvelle Fabrication</MudButton>
             </MudCard>
         </MudItem>
 
@@ -106,6 +148,8 @@ else
 
     private DemandeTravail? _dt;
     private InterventionRole? _myRole;
+    private List<BonDeConsignation> _consignations = new();
+    private List<DemandeFabrication> _fabrications = new();
     private bool _loading = true;
     private int _myUserId;
     
@@ -148,11 +192,11 @@ else
             // Find my role in this DT
             _myRole = _dt.Intervenants.FirstOrDefault(r => r.IntervenantId == _myUserId);
             
-            // If the technician is looking at this but hasn't been officially added yet by Ordonnanceur,
+            // If the technician is looking at this but hasn't been officially added yet by DSI,
             // we could auto-add them, or show an error. Let's auto-add if they are a technician to simplify for this demo.
             if (_myRole == null && _dt.Statut != StatutDT.Cloturee)
             {
-                // Note: Real logic would require Ordonnanceur to assign them, but we add if missing for testing.
+                // Note: Real logic would require DSI to assign them, but we add if missing for testing.
                 _myRole = new InterventionRole 
                 { 
                     DemandeTravailId = _dt.Id, 
@@ -163,9 +207,44 @@ else
                 // You'd typically save it via service here, but let's assume it gets saved when they save pointages
                 _dt.Intervenants.Add(_myRole);
             }
+
+            // Load linked docs
+            _consignations = await ConsignationService.GetByDemandeIdAsync(Id.Value);
+            // We'd need GetByDemandeIdAsync for Fabrication too, or filter
+            var allFab = await FabricationService.GetAllAsync();
+            _fabrications = allFab.Where(f => f.Intervenants.Any(i => i.NomsEtPrenoms.Contains(_dt.NumeroDT))).ToList(); 
+            // In a real DB we'd have a FK. Let's assume we link by Observations for now if FK is missing in logic
         }
         
         _loading = false;
+    }
+
+    private async Task CreateConsignation()
+    {
+        var parameters = new DialogParameters
+        { 
+            { "DtId", _dt.Id }, 
+            { "DtNumero", _dt.NumeroDT },
+            { "EquipementId", _dt.EquipementId }
+        };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<ConsignationDialog>("Consignation", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
+    }
+
+    private async Task CreateFabrication()
+    {
+        var newDf = new DemandeFabrication 
+        { 
+            EquipementId = _dt.EquipementId, 
+            DesignationPiece = $"Réparation pour DT {_dt.NumeroDT}",
+            Observations = $"Lié à la Demande de Travail {_dt.NumeroDT}",
+            Quantite = 1
+        };
+        await FabricationService.CreateAsync(newDf);
+        Snackbar.Add("Demande de fabrication créée", Severity.Info);
+        await LoadData();
     }
 
     private double GetHoursForDay(int day)

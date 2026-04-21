@@ -1,0 +1,113 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Constants
+@inject IConsignationService ConsignationService
+@inject IEquipementService EquipementService
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Class="mr-3 mb-n1" />
+            Nouveau Bon de Consignation
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                @if (DtId == null)
+                {
+                    <MudItem xs="12">
+                        <MudAutocomplete T="Equipement" Label="Équipement" @bind-Value="_selectedEquipement"
+                                         SearchFunc="@SearchEquipements" ToStringFunc="@(e => e == null ? null : $"{e.Code} - {e.Designation}")"
+                                         Required="true" RequiredError="Veuillez sélectionner un équipement" />
+                    </MudItem>
+                }
+                else
+                {
+                    <MudItem xs="12">
+                        <MudText Typo="Typo.body1">Consignation pour la DT: <b>@DtNumero</b></MudText>
+                    </MudItem>
+                }
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_bon.Atelier" Label="Atelier" Required="true" RequiredError="Atelier requis" />
+                </MudItem>
+                
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_bon.MotifConsignation" Label="Motif de Consignation" Lines="3" Required="true" RequiredError="Motif requis" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudTextField @bind-Value="_bon.ServiceUtilisateurConsignation" Label="Service Utilisateur" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Créer le Bon</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int? DtId { get; set; }
+    [Parameter] public string? DtNumero { get; set; }
+    [Parameter] public int? EquipementId { get; set; }
+
+    private BonDeConsignation _bon = new() { DateHeureConsignation = DateTime.Now };
+    private Equipement? _selectedEquipement;
+    private List<Equipement> _equipements = new();
+    private MudForm _form = default!;
+    private bool _success;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipements = await EquipementService.GetAllAsync();
+        if (EquipementId.HasValue)
+        {
+            _selectedEquipement = _equipements.FirstOrDefault(e => e.Id == EquipementId.Value);
+        }
+    }
+
+    private async Task<IEnumerable<Equipement>> SearchEquipements(string value, CancellationToken token)
+    {
+        if (string.IsNullOrEmpty(value)) return _equipements;
+        return _equipements.Where(x => x.Code.Contains(value, StringComparison.OrdinalIgnoreCase) || x.Designation.Contains(value, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            try
+            {
+                var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+                var username = authState.User.Identity?.Name ?? "";
+                
+                // For simplicity, we'd need a method to get user Id from username
+                // Here we assume we have a way or we just store names for now
+                // Ideally, injected IAuthService provides GetCurrentUserAsync
+                
+                if (DtId.HasValue) _bon.DemandeTravailId = DtId.Value;
+                if (_selectedEquipement != null) _bon.EquipementId = _selectedEquipement.Id;
+                else if (EquipementId.HasValue) _bon.EquipementId = EquipementId.Value;
+
+                _bon.VisaConsignation = DateTime.Now;
+
+                await ConsignationService.CreateAsync(_bon);
+                Snackbar.Add("Bon de consignation créé avec succès", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

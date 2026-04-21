@@ -52,6 +52,7 @@ builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
 builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<INotificationService, Sahel.GMAO.Web.Services.NotificationService>();
 builder.Services.AddScoped<INatureTravailService, NatureTravailService>();
+builder.Services.AddScoped<IConsignationService, ConsignationService>();
 
 var app = builder.Build();
 

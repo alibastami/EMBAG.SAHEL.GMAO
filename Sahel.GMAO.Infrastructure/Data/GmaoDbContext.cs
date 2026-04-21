@@ -20,6 +20,12 @@ public class GmaoDbContext : DbContext
     public DbSet<RapportIncident> RapportsIncidents { get; set; }
     public DbSet<DemandeFabrication> DemandesFabrication { get; set; }
     public DbSet<NatureTravail> NaturesTravail { get; set; }
+    public DbSet<BonDeConsignation> BonsDeConsignation { get; set; }
+    public DbSet<FicheEntretienPreventif> FichesEntretienPreventif { get; set; }
+    public DbSet<TacheEntretien> TachesEntretien { get; set; }
+    public DbSet<MatiereFabrication> MatieresFabrication { get; set; }
+    public DbSet<IntervenantFabrication> IntervenantsFabrication { get; set; }
+    public DbSet<PointageMachineFabrication> PointagesMachinesFabrication { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,6 +137,98 @@ public class GmaoDbContext : DbContext
             entity.HasOne(f => f.Equipement)
                 .WithMany()
                 .HasForeignKey(f => f.EquipementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(f => f.DemandeTravail)
+                .WithMany(d => d.DemandesFabrication)
+                .HasForeignKey(f => f.DemandeTravailId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+                
+            entity.Property(e => e.TotalCoutPieces).HasPrecision(18, 2);
+            entity.Property(e => e.TotalCoutMainOeuvre).HasPrecision(18, 2);
+            entity.Property(e => e.TotalCoutOperation).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<BonDeConsignation>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(b => b.Equipement)
+                .WithMany()
+                .HasForeignKey(b => b.EquipementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(b => b.DemandeTravail)
+                .WithMany(d => d.BonsDeConsignation)
+                .HasForeignKey(b => b.DemandeTravailId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(b => b.AgentConsignation)
+                .WithMany()
+                .HasForeignKey(b => b.AgentConsignationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(b => b.AgentDeconsignation)
+                .WithMany()
+                .HasForeignKey(b => b.AgentDeconsignationId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FicheEntretienPreventif>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            entity.HasOne(f => f.Equipement)
+                .WithMany()
+                .HasForeignKey(f => f.EquipementId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(f => f.Intervenant)
+                .WithMany()
+                .HasForeignKey(f => f.IntervenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<TacheEntretien>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(t => t.FicheEntretienPreventif)
+                .WithMany(f => f.Taches)
+                .HasForeignKey(t => t.FicheEntretienPreventifId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<MatiereFabrication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Prix).HasPrecision(18, 2);
+            entity.HasOne(m => m.DemandeFabrication)
+                .WithMany(d => d.MatieresConsommees)
+                .HasForeignKey(m => m.DemandeFabricationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<IntervenantFabrication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CoutHoraire).HasPrecision(18, 2);
+            entity.HasOne(i => i.DemandeFabrication)
+                .WithMany(d => d.Intervenants)
+                .HasForeignKey(i => i.DemandeFabricationId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+        
+        modelBuilder.Entity<PointageMachineFabrication>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(p => p.DemandeFabrication)
+                .WithMany(d => d.PointagesMachines)
+                .HasForeignKey(p => p.DemandeFabricationId)
+                .OnDelete(DeleteBehavior.Cascade);
+                
+            entity.HasOne(p => p.Intervenant)
+                .WithMany()
+                .HasForeignKey(p => p.IntervenantId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

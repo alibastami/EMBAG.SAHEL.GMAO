@@ -1,0 +1,152 @@
+@page "/fiches-entretien/{Id:int}"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IMaintenanceService MaintenanceService
+@inject NavigationManager NavManager
+@inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Roles = "DSI, Executant")]
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudPaper Class="pa-6 rounded-lg shadow" Elevation="2">
+        @if (_fiche == null)
+        {
+            <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+        }
+        else
+        {
+            <div class="d-flex justify-space-between align-center mb-6">
+                <div>
+                    <MudText Typo="Typo.h4" Color="Color.Primary" Class="font-weight-bold">Fiche d'Entretien @(_fiche.NumeroOT)</MudText>
+                    <MudText Typo="Typo.subtitle1">Équipement: <b>@(_fiche.Equipement?.Designation)</b> (@(_fiche.Equipement?.Code))</MudText>
+                </div>
+                <div class="d-flex gap-2">
+                    <MudButton Variant="Variant.Outlined" OnClick="Back" StartIcon="@Icons.Material.Filled.ArrowBack">Retour</MudButton>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Save" StartIcon="@Icons.Material.Filled.Save">Enregistrer</MudButton>
+                </div>
+            </div>
+
+            <MudGrid Class="mb-6">
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_fiche.Section" Label="Section" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_fiche.Periodicite" Label="Périodicité" Disabled="true" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudTextField @bind-Value="_fiche.Partie" Label="Partie (MEC/ELEC)" />
+                </MudItem>
+                <MudItem xs="12" sm="3">
+                    <MudDatePicker @bind-Date="_fiche.DateFaitLe" Label="Date Exécution" />
+                </MudItem>
+            </MudGrid>
+
+            <MudTable Items="@_fiche.Taches" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="mb-6 border rounded">
+                <HeaderContent>
+                    <MudTh Style="width: 50px;">Pos</MudTh>
+                    <MudTh>Organes</MudTh>
+                    <MudTh>Opération à effectuer</MudTh>
+                    <MudTh Style="width: 80px;">Fait</MudTh>
+                    <MudTh Style="width: 100px;">T. Prévu</MudTh>
+                    <MudTh Style="width: 100px;">T. Réel</MudTh>
+                    <MudTh>Observation</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                    <MudTd DataLabel="Pos">@context.Position</MudTd>
+                    <MudTd DataLabel="Organes">
+                        <MudTextField @bind-Value="context.Organes" Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Opération">
+                        <MudTextField @bind-Value="context.OperationAEffectuer" Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Fait">
+                        <MudCheckBox @bind-Value="context.EstFait" Color="Color.Success" />
+                    </MudTd>
+                    <MudTd DataLabel="T. Prévu">
+                        <MudNumericField @bind-Value="context.TempsPrevuHeures" Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="T. Réel">
+                        <MudNumericField @bind-Value="context.TempsRealiseHeures" Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                    <MudTd DataLabel="Observation">
+                        <MudTextField @bind-Value="context.Observation" Variant="Variant.Text" Margin="Margin.Dense" />
+                    </MudTd>
+                </RowTemplate>
+            </MudTable>
+
+            <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Add" OnClick="AddTask" Class="mb-6">Ajouter une ligne</MudButton>
+
+            <div class="pa-4 bg-gray-50 rounded border">
+                <MudText Typo="Typo.subtitle2" Class="mb-2">Visa d'exécution</MudText>
+                <MudText Typo="Typo.body2">L'intervenant confirme avoir réalisé les opérations ci-dessus.</MudText>
+                <div class="mt-4">
+                    <MudText Typo="Typo.body1"><b>@(_fiche.Intervenant?.FullName ?? "En attente de signature")</b></MudText>
+                    <MudText Typo="Typo.caption">@(_fiche.VisaIntervenant?.ToString("dd/MM/yyyy HH:mm") ?? "")</MudText>
+                </div>
+            </div>
+        }
+    </MudPaper>
+</MudContainer>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private FicheEntretienPreventif? _fiche;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _fiche = await MaintenanceService.GetFicheByIdAsync(Id);
+    }
+
+    private void AddTask()
+    {
+        if (_fiche == null) return;
+        _fiche.Taches.Add(new TacheEntretien 
+        { 
+            FicheEntretienPreventifId = _fiche.Id,
+            Position = (_fiche.Taches.MaxBy(t => t.Position)?.Position ?? 0) + 1,
+            Organes = "—",
+            OperationAEffectuer = "—"
+        });
+    }
+
+    private void Back() => NavManager.NavigateTo("/fiches-entretien");
+
+    private async Task Save()
+    {
+        if (_fiche == null) return;
+        
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            // Assign current user if not set
+            if (_fiche.IntervenantId == null)
+            {
+                // In a real app we'd map username to ID
+                _fiche.IntervenantId = 1; // Admin for now
+                _fiche.VisaIntervenant = DateTime.Now;
+            }
+
+            if (_fiche.DateFaitLe == null) _fiche.DateFaitLe = DateTime.Today;
+
+            await MaintenanceService.UpdateFicheExecutionAsync(_fiche);
+
+            // Update parent schedule last execution date
+            if (_fiche.MaintenancePreventiveId.HasValue)
+            {
+                await MaintenanceService.RegisterRealizationAsync(_fiche.MaintenancePreventiveId.Value, _fiche.DateFaitLe.Value);
+            }
+
+            Snackbar.Add("Fiche enregistrée avec succès", Severity.Success);
+            Back();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
+    }
+}

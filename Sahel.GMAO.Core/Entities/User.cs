@@ -16,7 +16,7 @@ public class User
     public string FullName { get; set; } = string.Empty;
 
     [Required]
-    public string Role { get; set; } = string.Empty; // Ordonnanceur, Mécanicien, Électricien
+    public string Role { get; set; } = string.Empty; // DSI, Mécanicien, Électricien
 
     public string Position { get; set; } = string.Empty;
 

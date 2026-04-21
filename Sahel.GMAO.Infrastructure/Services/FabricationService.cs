@@ -28,6 +28,9 @@ public class FabricationService : IFabricationService
         using var context = await _factory.CreateDbContextAsync();
         return await context.DemandesFabrication
             .Include(f => f.Equipement)
+            .Include(f => f.MatieresConsommees)
+            .Include(f => f.Intervenants)
+            .Include(f => f.PointagesMachines).ThenInclude(p => p.Intervenant)
             .FirstOrDefaultAsync(f => f.Id == id);
     }
 
@@ -65,5 +68,42 @@ public class FabricationService : IFabricationService
             context.DemandesFabrication.Remove(df);
             await context.SaveChangesAsync();
         }
+    }
+
+    public async Task UpdateAsync(DemandeFabrication df)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        
+        // Recalculate totals
+        df.TotalCoutPieces = df.MatieresConsommees.Sum(m => m.Prix);
+        df.TotalCoutMainOeuvre = df.Intervenants.Sum(i => i.Total);
+        df.TotalCoutOperation = df.TotalCoutPieces + df.TotalCoutMainOeuvre;
+
+        context.DemandesFabrication.Update(df);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task AddMatiereAsync(int dfId, MatiereFabrication matiere)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        matiere.DemandeFabricationId = dfId;
+        context.MatieresFabrication.Add(matiere);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task AddIntervenantAsync(int dfId, IntervenantFabrication intervenant)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        intervenant.DemandeFabricationId = dfId;
+        context.IntervenantsFabrication.Add(intervenant);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task AddPointageMachineAsync(int dfId, PointageMachineFabrication pointage)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        pointage.DemandeFabricationId = dfId;
+        context.PointagesMachinesFabrication.Add(pointage);
+        await context.SaveChangesAsync();
     }
 }

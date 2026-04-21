@@ -2,9 +2,9 @@ namespace Sahel.GMAO.Core.Constants;
 
 public static class AppRoles
 {
-    public const string Ordonnanceur = "Ordonnanceur";
-    public const string Mecanicien = "Mécanicien";
-    public const string Electricien = "Électricien";
+    public const string DSI = "DSI";
+    public const string Demandeur = "Demandeur";
+    public const string Executant = "Executant";
     
-    public static readonly string[] Techniciens = { Mecanicien, Electricien };
+    public static readonly string[] TousRoles = { DSI, Demandeur, Executant };
 }

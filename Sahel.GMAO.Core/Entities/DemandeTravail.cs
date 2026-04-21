@@ -48,4 +48,6 @@ public class DemandeTravail
     // Navigation properties
     public virtual ICollection<ConsommableUsage> Consommables { get; set; } = new List<ConsommableUsage>();
     public virtual ICollection<InterventionRole> Intervenants { get; set; } = new List<InterventionRole>();
+    public virtual ICollection<BonDeConsignation> BonsDeConsignation { get; set; } = new List<BonDeConsignation>();
+    public virtual ICollection<DemandeFabrication> DemandesFabrication { get; set; } = new List<DemandeFabrication>();
 }

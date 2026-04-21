@@ -8,6 +8,7 @@ namespace Sahel.GMAO.Core.Interfaces;
 public interface IDtService
 {
     Task<List<DemandeTravail>> GetAllAsync();
+    Task<List<DemandeTravail>> GetForUserAsync(string username, string role);
     Task<List<DemandeTravail>> GetByStatusAsync(StatutDT statut);
     Task<DemandeTravail?> GetByIdAsync(int id);
     Task<DemandeTravail> CreateAsync(DemandeTravail dt);

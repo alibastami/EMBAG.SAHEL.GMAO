@@ -6,7 +6,8 @@
 @inject IMaintenanceService MaintenanceService
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
-@attribute [Authorize(Roles = "Ordonnanceur")]
+@inject ISnackbar Snackbar
+@attribute [Authorize(Roles = "DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Planning de Maintenance</MudText>
 
@@ -38,6 +39,9 @@
                         <MudText Typo="Typo.body2" Class="mb-2">@item.Operation</MudText>
                         <MudChip T="string" Size="Size.Small" Variant="Variant.Text">@item.Equipement.Section</MudChip>
                     </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Assignment" OnClick="@(() => GenerateFiche(item))">Lancer Fiche</MudButton>
+                    </MudCardActions>
                 </MudCard>
             </MudItem>
         }
@@ -75,6 +79,20 @@
         // For planning, we might need a specific PDF method in IPdfService
         // But for now, we can reuse history or state logic if applicable
         // await PdfService.GeneratePlanningPdfAsync(_preventives);
+    }
+
+    private async Task GenerateFiche(MaintenancePreventive mp)
+    {
+        try
+        {
+            var fiche = await MaintenanceService.GenerateFicheFromScheduleAsync(mp.Id);
+            Snackbar.Add($"Fiche {fiche.NumeroOT} générée avec succès", Severity.Success);
+            // Optionally navigate to the fiche
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
     }
 }
 

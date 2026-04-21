@@ -72,4 +72,83 @@ public class MaintenanceService : IMaintenanceService
             await context.SaveChangesAsync();
         }
     }
+
+    public async Task<List<FicheEntretienPreventif>> GetAllFichesAsync()
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        return await context.FichesEntretienPreventif
+            .Include(f => f.Equipement)
+            .Include(f => f.Intervenant)
+            .OrderByDescending(f => f.DateFaitLe)
+            .ToListAsync();
+    }
+
+    public async Task<FicheEntretienPreventif?> GetFicheByIdAsync(int id)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        return await context.FichesEntretienPreventif
+            .Include(f => f.Equipement)
+            .Include(f => f.Intervenant)
+            .Include(f => f.Taches)
+            .FirstOrDefaultAsync(f => f.Id == id);
+    }
+
+    public async Task<FicheEntretienPreventif> GenerateFicheFromScheduleAsync(int maintenanceId)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        var mp = await context.MaintenancePreventives
+            .Include(m => m.Equipement)
+            .FirstOrDefaultAsync(m => m.Id == maintenanceId);
+
+        if (mp == null) throw new Exception("Maintenance schedule not found");
+
+        var fiche = new FicheEntretienPreventif
+        {
+            EquipementId = mp.EquipementId,
+            MaintenancePreventiveId = mp.Id,
+            Section = mp.Equipement.Section,
+            Periodicite = $"{mp.FrequenceJours} Jours",
+            Partie = "MEC/ELEC", // Default
+            NumeroOT = $"OT-{DateTime.Now:yyyyMMdd}-{mp.Id}",
+            Taches = new List<TacheEntretien>
+            {
+                new TacheEntretien
+                {
+                    Position = 1,
+                    Organes = "Général",
+                    OperationAEffectuer = mp.Operation,
+                    TempsPrevuHeures = 1.0 // Default
+                }
+            }
+        };
+
+        context.FichesEntretienPreventif.Add(fiche);
+        await context.SaveChangesAsync();
+        return fiche;
+    }
+
+    public async Task UpdateFicheExecutionAsync(FicheEntretienPreventif fiche)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        
+        // Update the tasks
+        foreach (var tache in fiche.Taches)
+        {
+            context.TachesEntretien.Update(tache);
+        }
+
+        context.FichesEntretienPreventif.Update(fiche);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteFicheAsync(int id)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        var fiche = await context.FichesEntretienPreventif.FindAsync(id);
+        if (fiche != null)
+        {
+            context.FichesEntretienPreventif.Remove(fiche);
+            await context.SaveChangesAsync();
+        }
+    }
 }

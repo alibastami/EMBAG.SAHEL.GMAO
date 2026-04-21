@@ -17,8 +17,8 @@ public static class DbInitializer
                 Username = "admin",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
                 FullName = "Administrateur Système",
-                Role = AppRoles.Ordonnanceur,
-                Position = "Chef Service B.E.M",
+                Role = AppRoles.DSI,
+                Position = "Directeur DSI",
                 CanManageUsers = true,
                 CanViewAudit = true,
                 CanEditInventory = true
@@ -34,7 +34,7 @@ public static class DbInitializer
                 Username = "tech1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Tech@2026"),
                 FullName = "Ahmed Mécanicien",
-                Role = AppRoles.Mecanicien,
+                Role = AppRoles.Executant,
                 Position = "Technicien Maintenance",
                 CanManageUsers = false,
                 CanViewAudit = false,
@@ -42,6 +42,42 @@ public static class DbInitializer
             };
             context.Users.Add(tech);
         }
+
+        if (!await context.Users.AnyAsync(u => u.Username == "zone1"))
+        {
+            var demandeur = new User
+            {
+                Username = "zone1",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Zone@2026"),
+                FullName = "Atelier OFFSET",
+                Role = AppRoles.Demandeur,
+                Position = "Demandeur",
+                CanManageUsers = false,
+                CanViewAudit = false,
+                CanEditInventory = false
+            };
+            context.Users.Add(demandeur);
+        }
+
+        // 1.5 Migrate existing users with legacy roles
+        var allUsers = await context.Users.ToListAsync();
+        foreach (var user in allUsers)
+        {
+            var oldRole = user.Role;
+            var newRole = oldRole switch
+            {
+                "Admin" or "Directeur" or "Ordonnanceur" => AppRoles.DSI,
+                "Mecanicien" or "Mécanicien" or "Electricien" or "Électricien" or "Technicien" => AppRoles.Executant,
+                "Zone" or "Client" => AppRoles.Demandeur,
+                _ => oldRole
+            };
+
+            if (newRole != oldRole)
+            {
+                user.Role = newRole;
+            }
+        }
+        await context.SaveChangesAsync();
 
         // 2. Seed equipments
         if (!await context.Equipements.AnyAsync())

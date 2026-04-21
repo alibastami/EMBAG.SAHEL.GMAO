@@ -130,7 +130,7 @@
                 await AuthStateProvider.MarkUserAsAuthenticated(user);
                 
                 // Redirect based on role
-                if (user.Role == AppRoles.Ordonnanceur)
+                if (user.Role == AppRoles.DSI)
                     NavManager.NavigateTo("/");
                 else
                     NavManager.NavigateTo("/"); // Both start at dashboard/dashboard for now

@@ -44,7 +44,7 @@
     protected override async Task OnInitializedAsync()
     {
         var allUsers = await AuthService.GetAllUsersAsync();
-        _techniciens = allUsers.Where(u => AppRoles.Techniciens.Contains(u.Role)).ToList();
+        _techniciens = allUsers.Where(u => u.Role == AppRoles.Executant || u.Role == AppRoles.DSI).ToList();
     }
 
     private void Cancel() => MudDialog.Cancel();

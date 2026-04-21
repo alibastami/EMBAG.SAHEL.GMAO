@@ -27,6 +27,29 @@ public class DtService : IDtService
             .ToListAsync();
     }
 
+    public async Task<List<DemandeTravail>> GetForUserAsync(string username, string role)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        
+        var query = context.DemandesTravail
+            .Include(d => d.Equipement)
+            .Include(d => d.Demandeur)
+            .AsQueryable();
+
+        if (role == Sahel.GMAO.Core.Constants.AppRoles.Demandeur)
+        {
+            query = query.Where(d => d.Demandeur != null && d.Demandeur.Username == username);
+        }
+        else if (role == Sahel.GMAO.Core.Constants.AppRoles.Executant)
+        {
+            // Only those assigned to this user
+            query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+        }
+        // If DSI, returns all
+
+        return await query.OrderByDescending(d => d.DateEmission).ToListAsync();
+    }
+
     public async Task<List<DemandeTravail>> GetByStatusAsync(StatutDT statut)
     {
         using var context = await _factory.CreateDbContextAsync();
@@ -59,7 +82,7 @@ public class DtService : IDtService
         context.DemandesTravail.Add(dt);
         await context.SaveChangesAsync();
         
-        // Notify Ordonnanceur (Broadcast for new DT)
+        // Notify DSI (Broadcast for new DT)
         await _notificationService.NotifyStatutChangedAsync(dt.Id, dt.NumeroDT, dt.Statut.ToString());
         
         return dt;

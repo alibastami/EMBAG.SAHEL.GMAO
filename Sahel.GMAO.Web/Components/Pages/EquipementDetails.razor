@@ -4,7 +4,7 @@
 @using Sahel.GMAO.Web.Components.Shared
 @inject IEquipementService EquipementService
 @inject NavigationManager NavManager
-@attribute [Authorize(Roles = "Ordonnanceur")]
+@attribute [Authorize(Roles = "DSI")]
 
 @if (_equipement == null)
 {

@@ -1,0 +1,90 @@
+@page "/fiches-entretien"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IMaintenanceService MaintenanceService
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
+@inject ISnackbar Snackbar
+@inject IPdfService PdfService
+@attribute [Authorize(Roles = "DSI, Executant")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Fiches d'Entretien Préventif</MudText>
+
+<MudDataGrid Items="@_fiches" Filterable="true" Hover="true">
+    <Columns>
+        <PropertyColumn Property="x => x.NumeroOT" Title="N° OT" />
+        <PropertyColumn Property="x => x.Equipement.Code" Title="Équipement" />
+        <PropertyColumn Property="x => x.Section" Title="Section" />
+        <PropertyColumn Property="x => x.Periodicite" Title="Périodicité" />
+        <PropertyColumn Property="x => x.DateFaitLe" Title="Date Exécution">
+            <CellTemplate>
+                @context.Item.DateFaitLe?.ToString("dd/MM/yyyy")
+            </CellTemplate>
+        </PropertyColumn>
+        <TemplateColumn Title="Statut">
+            <CellTemplate>
+                @if (context.Item.DateFaitLe.HasValue)
+                {
+                    <MudChip T="string" Color="Color.Success" Size="Size.Small">Terminée</MudChip>
+                }
+                else
+                {
+                    <MudChip T="string" Color="Color.Warning" Size="Size.Small">À Réaliser</MudChip>
+                }
+            </CellTemplate>
+        </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudTooltip Text="Exécuter / Modifier">
+                    <MudIconButton Icon="@Icons.Material.Filled.EditNote" Color="Color.Primary" OnClick="@(() => ExecuteFiche(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Imprimer (PDF)">
+                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Supprimer">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteFiche(context.Item))" />
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
+    </Columns>
+    <PagerContent>
+        <MudDataGridPager T="FicheEntretienPreventif" />
+    </PagerContent>
+</MudDataGrid>
+
+@code {
+    private List<FicheEntretienPreventif> _fiches = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        _fiches = await MaintenanceService.GetAllFichesAsync();
+    }
+
+    private void ExecuteFiche(FicheEntretienPreventif fiche)
+    {
+        NavManager.NavigateTo($"/fiches-entretien/{fiche.Id}");
+    }
+
+    private async Task DeleteFiche(FicheEntretienPreventif fiche)
+    {
+        bool result = await JSRuntime.InvokeAsync<bool>("confirm", $"Voulez-vous supprimer la fiche {fiche.NumeroOT} ?");
+        if (result)
+        {
+            await MaintenanceService.DeleteFicheAsync(fiche.Id);
+            await LoadData();
+        }
+    }
+
+    private async Task DownloadPdf(FicheEntretienPreventif fiche)
+    {
+        var pdfBytes = await PdfService.GenerateFicheEntretienPdfAsync(fiche);
+        var fileName = $"{fiche.NumeroOT}.pdf";
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+}
