@@ -13,6 +13,7 @@ public interface IDtService
     Task<DemandeTravail> CreateAsync(DemandeTravail dt);
     Task UpdateStatusAsync(int dtId, StatutDT nouveauStatut);
     Task UpdateExecutionAsync(DemandeTravail dt);
+    Task UpdateAsync(DemandeTravail dt);
     Task AddConsommableAsync(int dtId, int articleId, double quantite);
     Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification);
 }

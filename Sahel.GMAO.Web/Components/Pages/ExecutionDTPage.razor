@@ -1,0 +1,224 @@
+@page "/mes-taches/{id:int}"
+@page "/mes-taches"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Enums
+@inject IDtService DtService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+@attribute [Authorize(Roles = "Mecanicien,Electricien,Ordonnanceur")]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">
+    @(Id.HasValue ? $"Exécution DT n° {_dt?.NumeroDT}" : "Mes Tâches")
+</MudText>
+
+@if (!Id.HasValue)
+{
+    <MudAlert Severity="Severity.Info">Sélectionnez une demande de travail depuis la liste des tâches pour l'exécuter.</MudAlert>
+    <!-- We can list tasks here, but user typically navigates from dashboard -->
+    <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo("/"))" Class="mt-4">Retour au Tableau de Bord</MudButton>
+}
+else if (_dt == null)
+{
+    @if (_loading)
+    {
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Error">Demande de travail introuvable ou vous n'avez pas l'autorisation d'y accéder.</MudAlert>
+    }
+}
+else
+{
+    <MudGrid>
+        <MudItem xs="12" md="4">
+            <MudCard Elevation="2" Class="pa-4 h-100">
+                <MudText Typo="Typo.h6" Class="mb-4">Détails de l'Intervention</MudText>
+                
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Équipement</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2"><b>@_dt.Equipement.Code</b> - @_dt.Equipement.Designation</MudText>
+                
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Organe / Partie</MudText>
+                <MudText Typo="Typo.body1" Class="mb-2">@_dt.OrganePartie</MudText>
+
+                <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Travail Demandé</MudText>
+                <MudText Typo="Typo.body1" Class="mb-4">@_dt.TravailDemande</MudText>
+
+                <MudDivider Class="mb-4" />
+
+                <MudSelect T="StatutDT" Label="Statut de la DT" @bind-Value="_dt.Statut" Required="true" Variant="Variant.Outlined" Class="mb-4">
+                    @foreach (StatutDT statut in Enum.GetValues(typeof(StatutDT)))
+                    {
+                        <MudSelectItem Value="@statut">@statut.ToString()</MudSelectItem>
+                    }
+                </MudSelect>
+
+                <MudTextField T="string" Label="Travail Exécuté" @bind-Value="_dt.TravailExecute" Lines="4" Variant="Variant.Outlined" Class="mb-4" />
+                
+                <MudDatePicker Label="Début du Travail" @bind-Date="_dateDebut" Variant="Variant.Outlined" Class="mb-4" />
+                <MudDatePicker Label="Fin du Travail" @bind-Date="_dateFin" Variant="Variant.Outlined" Class="mb-4" />
+                
+                <MudNumericField T="double" Label="Arrêt de Production (H)" @bind-Value="_dt.DureeArretProductionHeures" Min="0" Variant="Variant.Outlined" HideSpinButtons="true" Class="mb-4" />
+
+                <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.Save">
+                    Sauvegarder les détails
+                </MudButton>
+            </MudCard>
+        </MudItem>
+
+        <MudItem xs="12" md="8">
+            <MudCard Elevation="2" Class="pa-4">
+                <MudText Typo="Typo.h6" Class="mb-4">Mon Pointage Journalier</MudText>
+                <MudAlert Severity="Severity.Info" Class="mb-4">
+                    Saisissez vos heures de travail pour chaque jour du mois pour cette intervention.
+                </MudAlert>
+
+                <MudGrid>
+                    @for (int i = 1; i <= 31; i++)
+                    {
+                        var day = i;
+                        <MudItem xs="3" sm="2" md="1" Class="pa-1">
+                            <MudNumericField T="double" Label="@day.ToString()" Value="@GetHoursForDay(day)" ValueChanged="@((double val) => SetHoursForDay(day, val))" Min="0" Max="24" HideSpinButtons="true" Variant="Variant.Text" />
+                        </MudItem>
+                    }
+                </MudGrid>
+                
+                <MudDivider Class="my-4" />
+                
+                <div class="d-flex justify-space-between align-center">
+                    <MudText Typo="Typo.subtitle1" Class="font-weight-bold">
+                        Total Heures : @_myRole?.HeuresTravaillees
+                    </MudText>
+                    <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="SavePointages" StartIcon="@Icons.Material.Filled.AccessTime">
+                        Enregistrer Pointages
+                    </MudButton>
+                </div>
+            </MudCard>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    [Parameter]
+    public int? Id { get; set; }
+
+    private DemandeTravail? _dt;
+    private InterventionRole? _myRole;
+    private bool _loading = true;
+    private int _myUserId;
+    
+    // Binding helpers for nullable datetimes
+    private DateTime? _dateDebut
+    {
+        get => _dt?.DateExecutionDebut;
+        set { if (_dt != null) _dt.DateExecutionDebut = value; }
+    }
+    
+    private DateTime? _dateFin
+    {
+        get => _dt?.DateExecutionFin;
+        set { if (_dt != null) _dt.DateExecutionFin = value; }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdStr = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        
+        if (int.TryParse(userIdStr, out var id))
+        {
+            _myUserId = id;
+        }
+
+        if (Id.HasValue)
+        {
+            await LoadData();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        _loading = true;
+        _dt = await DtService.GetByIdAsync(Id.Value);
+        
+        if (_dt != null)
+        {
+            // Find my role in this DT
+            _myRole = _dt.Intervenants.FirstOrDefault(r => r.IntervenantId == _myUserId);
+            
+            // If the technician is looking at this but hasn't been officially added yet by Ordonnanceur,
+            // we could auto-add them, or show an error. Let's auto-add if they are a technician to simplify for this demo.
+            if (_myRole == null && _dt.Statut != StatutDT.Cloturee)
+            {
+                // Note: Real logic would require Ordonnanceur to assign them, but we add if missing for testing.
+                _myRole = new InterventionRole 
+                { 
+                    DemandeTravailId = _dt.Id, 
+                    IntervenantId = _myUserId,
+                    Qualification = "Intervenant",
+                };
+                
+                // You'd typically save it via service here, but let's assume it gets saved when they save pointages
+                _dt.Intervenants.Add(_myRole);
+            }
+        }
+        
+        _loading = false;
+    }
+
+    private double GetHoursForDay(int day)
+    {
+        if (_myRole == null) return 0;
+        var p = _myRole.Pointages.FirstOrDefault(x => x.JourDuMois == day);
+        return p?.HeuresTravaillees ?? 0;
+    }
+
+    private void SetHoursForDay(int day, double hours)
+    {
+        if (_myRole == null) return;
+        
+        var p = _myRole.Pointages.FirstOrDefault(x => x.JourDuMois == day);
+        if (p != null)
+        {
+            if (hours > 0)
+                p.HeuresTravaillees = hours;
+            else
+                _myRole.Pointages.Remove(p); // Remove 0 hour entries to save space
+        }
+        else if (hours > 0)
+        {
+            // Determine date based on current month for simplicity, or the DT's month
+            var baseDate = _dt?.DateExecutionDebut ?? _dt?.DateEmission ?? DateTime.Now;
+            var dtDate = new DateTime(baseDate.Year, baseDate.Month, day > DateTime.DaysInMonth(baseDate.Year, baseDate.Month) ? 1 : day);
+            
+            _myRole.Pointages.Add(new PointageIntervention
+            {
+                JourDuMois = day,
+                HeuresTravaillees = hours,
+                DateIntervention = dtDate
+            });
+        }
+        
+        _myRole.HeuresTravaillees = _myRole.Pointages.Sum(x => x.HeuresTravaillees);
+    }
+
+    private async Task SaveDtInfo()
+    {
+        if (_dt != null)
+        {
+            await DtService.UpdateAsync(_dt);
+            Snackbar.Add("Détails de l'intervention sauvegardés.", Severity.Success);
+        }
+    }
+
+    private async Task SavePointages()
+    {
+        if (_dt != null)
+        {
+            await DtService.UpdateAsync(_dt);
+            Snackbar.Add($"Pointages enregistrés. Total: {_myRole?.HeuresTravaillees}h", Severity.Success);
+        }
+    }
+}

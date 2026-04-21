@@ -16,4 +16,6 @@ public class InterventionRole
     public string Qualification { get; set; } = string.Empty;
     public double HeuresTravaillees { get; set; }
     public decimal TauxHoraire { get; set; }
+
+    public virtual ICollection<PointageIntervention> Pointages { get; set; } = new List<PointageIntervention>();
 }

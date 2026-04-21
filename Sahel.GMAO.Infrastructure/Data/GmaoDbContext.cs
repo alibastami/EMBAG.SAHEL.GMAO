@@ -16,6 +16,7 @@ public class GmaoDbContext : DbContext
     public DbSet<ConsommableUsage> ConsommableUsages { get; set; }
     public DbSet<InterventionRole> InterventionRoles { get; set; }
     public DbSet<MaintenancePreventive> MaintenancePreventives { get; set; }
+    public DbSet<PointageIntervention> PointagesIntervention { get; set; }
     public DbSet<RapportIncident> RapportsIncidents { get; set; }
     public DbSet<DemandeFabrication> DemandesFabrication { get; set; }
     public DbSet<NatureTravail> NaturesTravail { get; set; }
@@ -89,6 +90,15 @@ public class GmaoDbContext : DbContext
             entity.HasOne(r => r.Intervenant)
                 .WithMany()
                 .HasForeignKey(r => r.IntervenantId);
+        });
+
+        modelBuilder.Entity<PointageIntervention>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(p => p.InterventionRole)
+                .WithMany(r => r.Pointages)
+                .HasForeignKey(p => p.InterventionRoleId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<MaintenancePreventive>(entity =>

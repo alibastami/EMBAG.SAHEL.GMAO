@@ -94,6 +94,26 @@ public class DtService : IDtService
         }
     }
 
+    public async Task UpdateAsync(DemandeTravail dt)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        
+        // Recalculate main d'oeuvre totals
+        dt.TotalCoutMainOeuvre = 0;
+        foreach (var intervenant in dt.Intervenants)
+        {
+            if (intervenant.Pointages != null)
+            {
+                intervenant.HeuresTravaillees = intervenant.Pointages.Sum(p => p.HeuresTravaillees);
+            }
+            dt.TotalCoutMainOeuvre += (decimal)intervenant.HeuresTravaillees * intervenant.TauxHoraire;
+        }
+        dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
+
+        context.DemandesTravail.Update(dt);
+        await context.SaveChangesAsync();
+    }
+
     public async Task AddConsommableAsync(int dtId, int articleId, double quantite)
     {
         using var context = await _factory.CreateDbContextAsync();

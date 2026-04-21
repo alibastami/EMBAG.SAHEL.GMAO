@@ -24,6 +24,8 @@ public class DemandeTravail
     [Required]
     public string OrganePartie { get; set; } = string.Empty;
 
+    public double? TempsDeMarcheHeures { get; set; }
+
     [Required]
     public string TravailDemande { get; set; } = string.Empty;
 
