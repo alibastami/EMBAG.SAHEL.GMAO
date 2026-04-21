@@ -1,5 +1,10 @@
 @page "/"
 @using Sahel.GMAO.Core.Constants
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IDtService DtService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
 @attribute [Authorize]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Tableau de Bord</MudText>
@@ -84,7 +89,7 @@
         <Authorized>
             <MudItem xs="12">
                 <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
-                    Bienvenue @context.User.FindFirst("FullName")?.Value. Vous avez <strong>2</strong> tâches assignées en attente.
+                    Bienvenue @context.User.FindFirst("FullName")?.Value. Vous avez <strong>@_myTasksCount</strong> tâches assignées en attente.
                 </MudAlert>
             </MudItem>
             
@@ -96,16 +101,50 @@
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                         <MudList T="string">
-                             <MudListItem Icon="@Icons.Material.Filled.Build" Text="Réparation Pompe P-102" />
-                             <MudListItem Icon="@Icons.Material.Filled.ElectricalServices" Text="Contrôle Armoire A-05" />
-                         </MudList>
+                        @if (_myTasks == null)
+                        {
+                            <MudProgressCircular Indeterminate="true" />
+                        }
+                        else if (!_myTasks.Any())
+                        {
+                            <MudText Typo="Typo.body2">Aucune tâche assignée pour le moment.</MudText>
+                        }
+                        else
+                        {
+                            <MudList T="DemandeTravail">
+                                @foreach (var task in _myTasks.Take(5))
+                                {
+                                    <MudListItem OnClick="@(() => NavManager.NavigateTo($"/demandes/{task.Id}"))" 
+                                                 Icon="@Icons.Material.Filled.Build" 
+                                                 Text="@($"{task.NumeroDT} - {task.TravailDemande}")" />
+                                }
+                            </MudList>
+                        }
                     </MudCardContent>
                     <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/demandes">Voir tout</MudButton>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => NavManager.NavigateTo("/demandes"))">Voir tout</MudButton>
                     </MudCardActions>
                 </MudCard>
             </MudItem>
         </Authorized>
     </AuthorizeView>
 </MudGrid>
+
+@code {
+    private List<DemandeTravail> _myTasks = new();
+    private int _myTasksCount = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        var username = user.Identity?.Name ?? "";
+        var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+
+        if (role == AppRoles.Executant)
+        {
+            _myTasks = await DtService.GetForUserAsync(username, role, true);
+            _myTasksCount = _myTasks.Count(d => d.Statut != Sahel.GMAO.Core.Enums.StatutDT.Cloturee);
+        }
+    }
+}

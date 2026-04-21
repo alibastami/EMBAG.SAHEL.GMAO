@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Sahel.GMAO.Core.Constants;
 using Sahel.GMAO.Core.Entities;
+using Sahel.GMAO.Core.Enums;
 using Sahel.GMAO.Infrastructure.Data;
 
 namespace Sahel.GMAO.Infrastructure.Data;
@@ -19,6 +20,7 @@ public static class DbInitializer
                 FullName = "Administrateur Système",
                 Role = AppRoles.DSI,
                 Position = "Directeur DSI",
+                Specialite = Specialite.Automatisme,
                 CanManageUsers = true,
                 CanViewAudit = true,
                 CanEditInventory = true
@@ -36,6 +38,24 @@ public static class DbInitializer
                 FullName = "Ahmed Mécanicien",
                 Role = AppRoles.Executant,
                 Position = "Technicien Maintenance",
+                Specialite = Specialite.Mecanique,
+                CanManageUsers = false,
+                CanViewAudit = false,
+                CanEditInventory = false
+            };
+            context.Users.Add(tech);
+        }
+
+        if (!await context.Users.AnyAsync(u => u.Username == "tech2"))
+        {
+            var tech = new User
+            {
+                Username = "tech2",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Tech@2026"),
+                FullName = "Said Électricien",
+                Role = AppRoles.Executant,
+                Position = "Technicien Électricité",
+                Specialite = Specialite.Electrique,
                 CanManageUsers = false,
                 CanViewAudit = false,
                 CanEditInventory = false

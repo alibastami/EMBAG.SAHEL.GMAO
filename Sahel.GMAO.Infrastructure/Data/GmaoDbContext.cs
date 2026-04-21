@@ -26,6 +26,7 @@ public class GmaoDbContext : DbContext
     public DbSet<MatiereFabrication> MatieresFabrication { get; set; }
     public DbSet<IntervenantFabrication> IntervenantsFabrication { get; set; }
     public DbSet<PointageMachineFabrication> PointagesMachinesFabrication { get; set; }
+    public DbSet<AppNotification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

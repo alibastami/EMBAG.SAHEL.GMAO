@@ -30,6 +30,15 @@
                 <MudItem xs="12" sm="6">
                     <MudDatePicker Label="Date de Réception Prévue" @bind-Date="_dt.DateReceptionPrevue" />
                 </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudSelect T="Specialite?" Label="Spécialité Requise" @bind-Value="_dt.SpecialiteRequise">
+                        <MudSelectItem T="Specialite?" Value="null">Générale / Non spécifiée</MudSelectItem>
+                        @foreach (var spec in Enum.GetValues<Specialite>())
+                        {
+                            <MudSelectItem T="Specialite?" Value="@spec">@spec.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
                 <MudItem xs="12">
                     <MudTextField T="string" Label="Travail Demandé" @bind-Value="_dt.TravailDemande" 
                                    Lines="3" Variant="Variant.Outlined" Required="true" RequiredError="La description du travail est requise" />

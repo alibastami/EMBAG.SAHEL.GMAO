@@ -1,6 +1,7 @@
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
 @using Sahel.GMAO.Core.Constants
+@using Sahel.GMAO.Core.Enums
 @inject ISnackbar Snackbar
 
 <MudDialog>
@@ -26,7 +27,19 @@
                         <MudSelectItem Value="@AppRoles.Demandeur">@AppRoles.Demandeur</MudSelectItem>
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12" sm="6">
+                @if (User.Role == AppRoles.Executant)
+                {
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="Specialite?" Label="Spécialité" @bind-Value="User.Specialite">
+                            <MudSelectItem T="Specialite?" Value="null">Aucune</MudSelectItem>
+                            @foreach (var spec in Enum.GetValues<Specialite>())
+                            {
+                                <MudSelectItem T="Specialite?" Value="@spec">@spec.ToString()</MudSelectItem>
+                            }
+                        </MudSelect>
+                    </MudItem>
+                }
+                <MudItem xs="12" sm="@(User.Role == AppRoles.Executant ? 6 : 6)">
                     <MudTextField T="string" Label="Poste / Qualification" @bind-Value="User.Position" />
                 </MudItem>
                 <MudItem xs="12">

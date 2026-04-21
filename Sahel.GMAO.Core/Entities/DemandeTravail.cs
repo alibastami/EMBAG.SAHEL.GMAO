@@ -28,6 +28,8 @@ public class DemandeTravail
 
     [Required]
     public string TravailDemande { get; set; } = string.Empty;
+    
+    public Specialite? SpecialiteRequise { get; set; }
 
     public string? InstructionsPreparation { get; set; }
     public DateTime? DateReceptionPrevue { get; set; }

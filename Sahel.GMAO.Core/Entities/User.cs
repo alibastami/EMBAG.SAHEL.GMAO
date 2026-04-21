@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Sahel.GMAO.Core.Enums;
 
 namespace Sahel.GMAO.Core.Entities;
 
@@ -17,6 +18,8 @@ public class User
 
     [Required]
     public string Role { get; set; } = string.Empty; // DSI, Mécanicien, Électricien
+    
+    public Specialite? Specialite { get; set; }
 
     public string Position { get; set; } = string.Empty;
 

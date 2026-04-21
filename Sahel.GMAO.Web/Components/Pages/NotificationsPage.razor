@@ -1,0 +1,77 @@
+@page "/notifications"
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject INotificationService NotificationService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavManager
+@attribute [Authorize]
+
+<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Notifications</MudText>
+
+<MudPaper Elevation="2" Class="pa-4">
+    <MudList T="AppNotification">
+        @if (_notifications == null)
+        {
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        }
+        else if (!_notifications.Any())
+        {
+            <MudAlert Severity="Severity.Info">Vous n'avez aucune notification pour le moment.</MudAlert>
+        }
+        else
+        {
+            @foreach (var notif in _notifications)
+            {
+                <MudListItem OnClick="@(() => HandleClick(notif))" Class="@(notif.IsRead ? "" : "font-weight-bold bg-light-green-lighten-5")">
+                    <div class="d-flex justify-space-between align-center">
+                        <div>
+                            <MudText Typo="Typo.body1">@notif.Message</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@notif.DateCreated.ToLocalTime().ToString("g")</MudText>
+                        </div>
+                        @if (!notif.IsRead)
+                        {
+                            <MudBadge Color="Color.Error" Dot="true" Overlap="true" Class="ml-2" />
+                        }
+                    </div>
+                </MudListItem>
+                <MudDivider />
+            }
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    private List<AppNotification>? _notifications;
+    private int? _userId;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userIdClaim = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier);
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+        {
+            _userId = userId;
+        }
+
+        await LoadNotifications();
+    }
+
+    private async Task LoadNotifications()
+    {
+        _notifications = await NotificationService.GetUserNotificationsAsync(_userId);
+    }
+
+    private async Task HandleClick(AppNotification notif)
+    {
+        if (!notif.IsRead)
+        {
+            await NotificationService.MarkAsReadAsync(notif.Id);
+            notif.IsRead = true;
+        }
+
+        if (!string.IsNullOrEmpty(notif.Link))
+        {
+            NavManager.NavigateTo(notif.Link);
+        }
+    }
+}

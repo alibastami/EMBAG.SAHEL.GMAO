@@ -27,7 +27,7 @@ public class DtService : IDtService
             .ToListAsync();
     }
 
-    public async Task<List<DemandeTravail>> GetForUserAsync(string username, string role)
+    public async Task<List<DemandeTravail>> GetForUserAsync(string username, string role, bool mineOnly = false)
     {
         using var context = await _factory.CreateDbContextAsync();
         
@@ -42,8 +42,12 @@ public class DtService : IDtService
         }
         else if (role == Sahel.GMAO.Core.Constants.AppRoles.Executant)
         {
-            // Only those assigned to this user
-            query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+            if (mineOnly)
+            {
+                // Only those assigned to this user
+                query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+            }
+            // If not mineOnly, they see all (as requested: "YES all")
         }
         // If DSI, returns all
 

@@ -184,6 +184,7 @@ else
 
     private async Task LoadData()
     {
+        if (!Id.HasValue) return;
         _loading = true;
         _dt = await DtService.GetByIdAsync(Id.Value);
         
@@ -221,6 +222,7 @@ else
 
     private async Task CreateConsignation()
     {
+        if (_dt == null) return;
         var parameters = new DialogParameters
         { 
             { "DtId", _dt.Id }, 
@@ -235,6 +237,7 @@ else
 
     private async Task CreateFabrication()
     {
+        if (_dt == null) return;
         var newDf = new DemandeFabrication 
         { 
             EquipementId = _dt.EquipementId, 

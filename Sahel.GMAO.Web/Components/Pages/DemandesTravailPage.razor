@@ -20,6 +20,10 @@
         {
             <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouvelle DT</MudButton>
         }
+        @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.Executant)
+        {
+            <MudSwitch T="bool" Value="_mineOnly" ValueChanged="OnMineOnlyChanged" Color="Color.Primary" Label="Mes Tâches Uniquement" />
+        }
         <MudSpacer />
         <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (N°, Équipement, Travail...)" Adornment="Adornment.Start" Immediate="true"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -32,6 +36,8 @@
             </CellTemplate>
         </PropertyColumn>
         <PropertyColumn Property="x => x.Equipement.Code" Title="Équipement" />
+        <PropertyColumn Property="x => x.SpecialiteRequise" Title="Spécialité" 
+                        Filterable="true" />
         <PropertyColumn Property="x => x.TravailDemande" Title="Travail Demandé" />
         <TemplateColumn Title="Statut">
             <CellTemplate>
@@ -76,9 +82,17 @@
         await LoadData();
     }
 
+    private bool _mineOnly = false;
+
     private async Task LoadData()
     {
-        _demandes = await DtService.GetForUserAsync(_username, _userRole);
+        _demandes = await DtService.GetForUserAsync(_username, _userRole, _mineOnly);
+    }
+
+    private async Task OnMineOnlyChanged(bool value)
+    {
+        _mineOnly = value;
+        await LoadData();
     }
 
     private void ViewDetails(DemandeTravail dt)
