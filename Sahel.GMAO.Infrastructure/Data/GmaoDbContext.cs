@@ -27,6 +27,7 @@ public class GmaoDbContext : DbContext
     public DbSet<IntervenantFabrication> IntervenantsFabrication { get; set; }
     public DbSet<PointageMachineFabrication> PointagesMachinesFabrication { get; set; }
     public DbSet<AppNotification> Notifications { get; set; }
+    public DbSet<InterventionLog> InterventionLogs { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -230,6 +231,19 @@ public class GmaoDbContext : DbContext
             entity.HasOne(p => p.Intervenant)
                 .WithMany()
                 .HasForeignKey(p => p.IntervenantId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<InterventionLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(l => l.DemandeTravail)
+                .WithMany(d => d.JournalInterventions)
+                .HasForeignKey(l => l.DemandeTravailId);
+            
+            entity.HasOne(l => l.Intervenant)
+                .WithMany()
+                .HasForeignKey(l => l.IntervenantId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

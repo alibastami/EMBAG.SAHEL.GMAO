@@ -7,6 +7,7 @@
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
+@inject IDialogService DialogService
 @attribute [Authorize(Roles = "DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Planning de Maintenance</MudText>
@@ -19,6 +20,7 @@
             <MudText Typo="Typo.body2" Color="Color.Secondary">Visualisation des opérations de maintenance programmées par mois.</MudText>
         </div>
         <MudSpacer />
+        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenCreateDialog" Class="mr-2">Nouvelle Opération</MudButton>
         <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Secondary" OnClick="DownloadPlanningPdf">Exporter Planning PDF</MudButton>
     </div>
 </MudPaper>
@@ -41,6 +43,9 @@
                     </MudCardContent>
                     <MudCardActions>
                         <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Assignment" OnClick="@(() => GenerateFiche(item))">Lancer Fiche</MudButton>
+                        <MudSpacer />
+                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small" OnClick="@(() => OpenEditDialog(item))" />
+                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteOperation(item))" />
                     </MudCardActions>
                 </MudCard>
             </MudItem>
@@ -87,11 +92,38 @@
         {
             var fiche = await MaintenanceService.GenerateFicheFromScheduleAsync(mp.Id);
             Snackbar.Add($"Fiche {fiche.NumeroOT} générée avec succès", Severity.Success);
-            // Optionally navigate to the fiche
         }
         catch (Exception ex)
         {
             Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        var parameters = new DialogParameters { ["Model"] = new MaintenancePreventive() };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddEditPreventiveDialog>("Ajouter une opération", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
+    }
+
+    private async Task OpenEditDialog(MaintenancePreventive mp)
+    {
+        var parameters = new DialogParameters { ["Model"] = mp };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddEditPreventiveDialog>("Modifier l'opération", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
+    }
+
+    private async Task DeleteOperation(MaintenancePreventive mp)
+    {
+        bool? result = await DialogService.ShowMessageBox("Confirmer", $"Supprimer l'opération pour {mp.Equipement.Code} ?", "Oui", "Non");
+        if (result == true)
+        {
+            await MaintenanceService.DeletePreventiveAsync(mp.Id);
+            await LoadData();
         }
     }
 }

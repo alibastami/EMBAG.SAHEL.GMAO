@@ -1,0 +1,74 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IStockService StockService
+@inject IDtService DtService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">Consommer une Pièce de Rechange (PDR)</MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="int" Label="Article PDR" @bind-Value="_selectedArticleId" Required="true" Variant="Variant.Outlined">
+                        @foreach (var art in _articles)
+                        {
+                            <MudSelectItem Value="@art.Id">@art.CodeArticle - @art.Designation (@art.QuantiteEnStock @art.Unite)</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudNumericField T="double" Label="Quantité" @bind-Value="_quantite" Required="true" Variant="Variant.Outlined" Min="0.1" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Consommer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public int DtId { get; set; }
+
+    private MudForm _form = null!;
+    private List<ArticlePdr> _articles = new();
+    private int _selectedArticleId;
+    private double _quantite = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _articles = await StockService.GetAllAsync();
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            var article = _articles.FirstOrDefault(a => a.Id == _selectedArticleId);
+            if (article != null && article.QuantiteEnStock < _quantite)
+            {
+                Snackbar.Add("Stock insuffisant !", Severity.Warning);
+                return;
+            }
+
+            try
+            {
+                await DtService.AddConsommableAsync(DtId, _selectedArticleId, _quantite);
+                Snackbar.Add("Pièce consommée avec succès", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

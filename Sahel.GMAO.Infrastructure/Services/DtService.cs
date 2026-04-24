@@ -91,6 +91,7 @@ public class DtService : IDtService
             .Include(d => d.Demandeur)
             .Include(d => d.Consommables).ThenInclude(c => c.ArticlePdr)
             .Include(d => d.Intervenants).ThenInclude(i => i.Intervenant)
+            .Include(d => d.JournalInterventions).ThenInclude(l => l.Intervenant)
             .FirstOrDefaultAsync(d => d.Id == id);
     }
 
@@ -243,6 +244,49 @@ public class DtService : IDtService
             {
                 await _notificationService.NotifyNewDTAsync(userId, dt.NumeroDT);
             }
+        }
+    }
+
+    public async Task AddInterventionLogAsync(InterventionLog log)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        
+        var dt = await context.DemandesTravail
+            .Include(d => d.Intervenants)
+            .FirstOrDefaultAsync(d => d.Id == log.DemandeTravailId);
+            
+        if (dt != null)
+        {
+            context.InterventionLogs.Add(log);
+            
+            // 1. Update the main DT fields with the latest log info
+            dt.TravailExecute = log.TravailExecute;
+            dt.DateExecutionFin = log.DateIntervention;
+            if (dt.DateExecutionDebut == null) dt.DateExecutionDebut = log.DateIntervention;
+            dt.DureeArretProductionHeures += log.ArretProductionHeures;
+
+            // 2. Update the technician's role hours and costs
+            var role = dt.Intervenants.FirstOrDefault(r => r.IntervenantId == log.IntervenantId);
+            if (role == null)
+            {
+                role = new InterventionRole
+                {
+                    DemandeTravailId = dt.Id,
+                    IntervenantId = log.IntervenantId,
+                    Qualification = "Intervenant",
+                    TauxHoraire = 500 // Default
+                };
+                context.InterventionRoles.Add(role);
+                dt.Intervenants.Add(role);
+            }
+
+            role.HeuresTravaillees += log.DureeHeures;
+            
+            // 3. Update Global Totals
+            dt.TotalCoutMainOeuvre += (decimal)log.DureeHeures * role.TauxHoraire;
+            dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
+
+            await context.SaveChangesAsync();
         }
     }
 }

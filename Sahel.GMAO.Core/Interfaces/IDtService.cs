@@ -17,4 +17,5 @@ public interface IDtService
     Task UpdateAsync(DemandeTravail dt);
     Task AddConsommableAsync(int dtId, int articleId, double quantite);
     Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification);
+    Task AddInterventionLogAsync(InterventionLog log);
 }

@@ -1,0 +1,91 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IMaintenanceService MaintenanceService
+@inject IEquipementService EquipementService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            @(Model.Id == 0 ? "Ajouter une Opération de Maintenance" : "Modifier l'Opération")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="int" Label="Équipement" @bind-Value="Model.EquipementId" Required="true" Variant="Variant.Outlined">
+                        @foreach (var eq in _equipements)
+                        {
+                            <MudSelectItem Value="@eq.Id">@eq.Code - @eq.Designation</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Opération à effectuer" @bind-Value="Model.Operation" Required="true" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="int" Label="Fréquence (Jours)" @bind-Value="Model.FrequenceJours" Required="true" Variant="Variant.Outlined" Min="1" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker Label="Prochaine Échéance" @bind-Date="_nextDate" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudSwitch T="bool" @bind-Value="Model.IsActive" Color="Color.Primary" Label="Actif" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Enregistrer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+    [Parameter] public MaintenancePreventive Model { get; set; } = new();
+
+    private MudForm _form = null!;
+    private List<Equipement> _equipements = new();
+    
+    private DateTime? _nextDate
+    {
+        get => Model.DateProchaineEcheance == default ? null : Model.DateProchaineEcheance;
+        set => Model.DateProchaineEcheance = value ?? DateTime.Now;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipements = await EquipementService.GetAllAsync();
+        if (Model.Id == 0 && Model.DateProchaineEcheance == default)
+        {
+            Model.DateProchaineEcheance = DateTime.Now.AddDays(30);
+            Model.IsActive = true;
+            Model.FrequenceJours = 30;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Submit()
+    {
+        await _form.Validate();
+        if (_form.IsValid)
+        {
+            try
+            {
+                if (Model.Id == 0)
+                    await MaintenanceService.CreatePreventiveAsync(Model);
+                else
+                    await MaintenanceService.UpdatePreventiveAsync(Model);
+                
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+            }
+        }
+    }
+}

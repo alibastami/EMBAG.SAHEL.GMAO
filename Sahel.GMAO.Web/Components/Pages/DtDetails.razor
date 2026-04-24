@@ -37,9 +37,36 @@
     else
     {
         <MudGrid>
-            <!-- Informations Générales -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="3" Class="rounded-lg h-100 border-l-4 border-primary">
+            <!-- Travail Demandé (On Top) -->
+            <MudItem xs="12">
+                <MudCard Elevation="3" Class="rounded-lg border-l-4 border-warning">
+                    <MudCardHeader>
+                        <CardHeaderAvatar>
+                            <MudAvatar Color="Color.Warning" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Assignment" /></MudAvatar>
+                        </CardHeaderAvatar>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold">Travail Demandé</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudPaper Elevation="0" Class="pa-4 bg-light rounded-lg">
+                            <MudText Typo="Typo.h6" Class="font-weight-bold" Style="white-space: pre-wrap; font-size: 1.3rem;">@_dt.TravailDemande</MudText>
+                        </MudPaper>
+                        
+                        @if (!string.IsNullOrEmpty(_dt.InstructionsPreparation))
+                        {
+                            <div class="mt-4">
+                                <MudText Typo="Typo.h6" Class="font-weight-bold mb-1" Color="Color.Warning">Instructions de Préparation :</MudText>
+                                <MudText Typo="Typo.body1" Class="italic font-weight-bold">@_dt.InstructionsPreparation</MudText>
+                            </div>
+                        }
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Informations Générales (Below) -->
+            <MudItem xs="12">
+                <MudCard Elevation="3" Class="rounded-lg border-l-4 border-primary">
                     <MudCardHeader>
                         <CardHeaderAvatar>
                             <MudAvatar Color="Color.Primary" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Info" /></MudAvatar>
@@ -49,63 +76,48 @@
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <MudSimpleTable Style="overflow-x: auto;" Dense="true" Hover="true">
-                            <tbody>
-                                <tr>
-                                    <td class="font-weight-bold" style="width: 40%;">N° DT</td>
-                                    <td><MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@_dt.NumeroDT</MudChip></td>
-                                </tr>
-                                <tr>
-                                    <td class="font-weight-bold">Date d'émission</td>
-                                    <td>@_dt.DateEmission.ToString("dd/MM/yyyy HH:mm")</td>
-                                </tr>
-                                <tr>
-                                    <td class="font-weight-bold">Demandeur</td>
-                                    <td>@_dt.Demandeur?.FullName (@_dt.Demandeur?.Username)</td>
-                                </tr>
-                                <tr>
-                                    <td class="font-weight-bold">Équipement</td>
-                                    <td>
-                                        <MudLink href="@($"/equipements/{_dt.EquipementId}")" Underline="Underline.Hover">
-                                            <b>@_dt.Equipement?.Code</b> - @_dt.Equipement?.Designation
-                                        </MudLink>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="font-weight-bold">Organe / Partie</td>
-                                    <td>@_dt.OrganePartie</td>
-                                </tr>
-                                <tr>
-                                    <td class="font-weight-bold">Spécialité</td>
-                                    <td><MudChip T="string" Color="Color.Info" Size="Size.Small">@_dt.SpecialiteRequise</MudChip></td>
-                                </tr>
-                            </tbody>
-                        </MudSimpleTable>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- Travail Demandé -->
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="3" Class="rounded-lg h-100 border-l-4 border-secondary">
-                    <MudCardHeader>
-                        <CardHeaderAvatar>
-                            <MudAvatar Color="Color.Secondary" Variant="Variant.Filled"><MudIcon Icon="@Icons.Material.Filled.Assignment" /></MudAvatar>
-                        </CardHeaderAvatar>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Travail Demandé</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudPaper Elevation="0" Class="pa-4 bg-light rounded-lg">
-                            <MudText Typo="Typo.body1" Style="white-space: pre-wrap;">@_dt.TravailDemande</MudText>
-                        </MudPaper>
-                        
-                        @if (!string.IsNullOrEmpty(_dt.InstructionsPreparation))
-                        {
-                            <MudText Typo="Typo.subtitle2" Class="mt-4 mb-1" Color="Color.Warning">Instructions de Préparation</MudText>
-                            <MudText Typo="Typo.body2" Class="italic">@_dt.InstructionsPreparation</MudText>
-                        }
+                        <MudGrid>
+                            <MudItem xs="12" md="6">
+                                <MudSimpleTable Style="overflow-x: auto;" Dense="true" Hover="true" Elevation="0">
+                                    <tbody>
+                                        <tr>
+                                            <td class="font-weight-bold" style="width: 40%;">N° DT</td>
+                                            <td><MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Filled">@_dt.NumeroDT</MudChip></td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Date d'émission</td>
+                                            <td>@_dt.DateEmission.ToString("dd/MM/yyyy HH:mm")</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Demandeur</td>
+                                            <td>@_dt.Demandeur?.FullName (@_dt.Demandeur?.Username)</td>
+                                        </tr>
+                                    </tbody>
+                                </MudSimpleTable>
+                            </MudItem>
+                            <MudItem xs="12" md="6">
+                                <MudSimpleTable Style="overflow-x: auto;" Dense="true" Hover="true" Elevation="0">
+                                    <tbody>
+                                        <tr>
+                                            <td class="font-weight-bold" style="width: 40%;">Équipement</td>
+                                            <td>
+                                                <MudLink href="@($"/equipements/{_dt.EquipementId}")" Underline="Underline.Hover">
+                                                    <b>@_dt.Equipement?.Code</b> - @_dt.Equipement?.Designation
+                                                </MudLink>
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Organe / Partie</td>
+                                            <td>@_dt.OrganePartie</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="font-weight-bold">Spécialité</td>
+                                            <td><MudChip T="string" Color="Color.Info" Size="Size.Small">@_dt.SpecialiteRequise</MudChip></td>
+                                        </tr>
+                                    </tbody>
+                                </MudSimpleTable>
+                            </MudItem>
+                        </MudGrid>
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -147,28 +159,68 @@
                             </MudItem>
                             
                             <MudItem xs="12" md="8">
-                                <MudText Typo="Typo.subtitle2" Class="mb-2">Intervenants et Pointages</MudText>
-                                @if (_dt.Intervenants == null || !_dt.Intervenants.Any())
-                                {
-                                    <MudAlert Severity="Severity.Normal">Aucun intervenant assigné.</MudAlert>
-                                }
-                                else
-                                {
-                                    <MudTable Items="@_dt.Intervenants" Dense="true" Hover="true" Elevation="0" Class="rounded-lg border">
-                                        <HeaderContent>
-                                            <MudTh>Nom</MudTh>
-                                            <MudTh>Qualification</MudTh>
-                                            <MudTh>Total Heures</MudTh>
-                                        </HeaderContent>
-                                        <RowTemplate>
-                                            <MudTd DataLabel="Nom">@context.Intervenant?.FullName</MudTd>
-                                            <MudTd DataLabel="Qualification">@context.Qualification</MudTd>
-                                            <MudTd DataLabel="Total Heures">
-                                                <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@context.HeuresTravaillees H</MudChip>
-                                            </MudTd>
-                                        </RowTemplate>
-                                    </MudTable>
-                                }
+                                <MudTabs Elevation="0" Outlined="true" Rounded="true" Color="Color.Success" ApplyEffectsToContainer="true" PanelClass="pa-4">
+                                    <MudTabPanel Text="Journal d'Intervention" Icon="@Icons.Material.Filled.History">
+                                        @if (_dt.JournalInterventions == null || !_dt.JournalInterventions.Any())
+                                        {
+                                            <MudAlert Severity="Severity.Normal" Dense="true">Aucun historique d'intervention.</MudAlert>
+                                        }
+                                        else
+                                        {
+                                            <div style="max-height: 300px; overflow-y: auto;">
+                                                <MudTimeline TimelinePosition="TimelinePosition.Start" Dense="true">
+                                                    @foreach (var entry in _dt.JournalInterventions.OrderByDescending(e => e.DateIntervention))
+                                                    {
+                                                        <MudTimelineItem Color="Color.Info" Size="Size.Small">
+                                                            <ItemContent>
+                                                                <MudPaper Elevation="0" Class="pa-2 rounded-lg border">
+                                                                    <div class="d-flex justify-space-between align-center mb-1">
+                                                                        <MudText Typo="Typo.subtitle2">@entry.Intervenant?.FullName</MudText>
+                                                                        <MudText Typo="Typo.caption" Color="Color.Secondary">@entry.DateIntervention.ToString("dd/MM HH:mm")</MudText>
+                                                                    </div>
+                                                                    <MudText Typo="Typo.body2">@entry.TravailExecute</MudText>
+                                                                    <div class="d-flex gap-2 mt-1">
+                                                                        @if (entry.DureeHeures > 0)
+                                                                        {
+                                                                            <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@entry.DureeHeures H</MudChip>
+                                                                        }
+                                                                        @if (entry.ArretProductionHeures > 0)
+                                                                        {
+                                                                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Text">@entry.ArretProductionHeures H Arrêt</MudChip>
+                                                                        }
+                                                                    </div>
+                                                                </MudPaper>
+                                                            </ItemContent>
+                                                        </MudTimelineItem>
+                                                    }
+                                                </MudTimeline>
+                                            </div>
+                                        }
+                                    </MudTabPanel>
+                                    <MudTabPanel Text="Intervenants" Icon="@Icons.Material.Filled.People">
+                                        @if (_dt.Intervenants == null || !_dt.Intervenants.Any())
+                                        {
+                                            <MudAlert Severity="Severity.Normal" Dense="true">Aucun intervenant assigné.</MudAlert>
+                                        }
+                                        else
+                                        {
+                                            <MudTable Items="@_dt.Intervenants" Dense="true" Hover="true" Elevation="0" Class="rounded-lg border">
+                                                <HeaderContent>
+                                                    <MudTh>Nom</MudTh>
+                                                    <MudTh>Qualification</MudTh>
+                                                    <MudTh>Total Heures</MudTh>
+                                                </HeaderContent>
+                                                <RowTemplate>
+                                                    <MudTd DataLabel="Nom">@context.Intervenant?.FullName</MudTd>
+                                                    <MudTd DataLabel="Qualification">@context.Qualification</MudTd>
+                                                    <MudTd DataLabel="Total Heures">
+                                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@context.HeuresTravaillees H</MudChip>
+                                                    </MudTd>
+                                                </RowTemplate>
+                                            </MudTable>
+                                        }
+                                    </MudTabPanel>
+                                </MudTabs>
                             </MudItem>
                         </MudGrid>
                     </MudCardContent>
@@ -185,6 +237,14 @@
                         <CardHeaderContent>
                             <MudText Typo="Typo.h6">Pièces de Rechange (PDR)</MudText>
                         </CardHeaderContent>
+                        <CardHeaderActions>
+                            @if (_dt.Statut != StatutDT.Cloturee)
+                            {
+                                <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.AddShoppingCart" OnClick="OpenAddPdrDialog">
+                                    Consommer PDR
+                                </MudButton>
+                            }
+                        </CardHeaderActions>
                     </MudCardHeader>
                     <MudCardContent>
                         @if (_dt.Consommables == null || !_dt.Consommables.Any())
@@ -252,5 +312,14 @@
         {
             _loading = false;
         }
+    }
+
+    private async Task OpenAddPdrDialog()
+    {
+        var parameters = new DialogParameters { ["DtId"] = Id };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddConsommableDialog>("Consommer PDR", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
     }
 }

@@ -52,4 +52,5 @@ public class DemandeTravail
     public virtual ICollection<InterventionRole> Intervenants { get; set; } = new List<InterventionRole>();
     public virtual ICollection<BonDeConsignation> BonsDeConsignation { get; set; } = new List<BonDeConsignation>();
     public virtual ICollection<DemandeFabrication> DemandesFabrication { get; set; } = new List<DemandeFabrication>();
+    public virtual ICollection<InterventionLog> JournalInterventions { get; set; } = new List<InterventionLog>();
 }

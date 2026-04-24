@@ -38,125 +38,83 @@ else if (_dt == null)
 else
 {
     <MudGrid>
-        @* Détails de l'Intervention Card *@
         <MudItem xs="12">
-            <MudCard Elevation="2" Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-4" Color="Color.Primary">Détails de l'Intervention</MudText>
-                
-                <MudGrid>
-                    @* Info Side *@
-                    <MudItem xs="12" md="6">
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Équipement</MudText>
-                        <MudText Typo="Typo.body1" Class="mb-2"><b>@_dt.Equipement.Code</b> - @_dt.Equipement.Designation</MudText>
-                        
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Organe / Partie</MudText>
-                        <MudText Typo="Typo.body1" Class="mb-2">@_dt.OrganePartie</MudText>
+            <MudCard Elevation="2">
+                <MudCardContent>
+                    <MudGrid>
+                        @* Info Side *@
+                        <MudItem xs="12" md="5">
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Équipement</MudText>
+                            <MudText Typo="Typo.body1" Class="mb-2"><b>@_dt.Equipement.Code</b> - @_dt.Equipement.Designation</MudText>
+                            
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Organe / Partie</MudText>
+                            <MudText Typo="Typo.body1" Class="mb-2">@_dt.OrganePartie</MudText>
 
-                        <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Travail Demandé</MudText>
-                        <MudText Typo="Typo.body1" Class="mb-4">@_dt.TravailDemande</MudText>
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary">Travail Demandé</MudText>
+                            <MudPaper Elevation="0" Class="pa-2 bg-light mb-4">
+                                <MudText Typo="Typo.body2">@_dt.TravailDemande</MudText>
+                            </MudPaper>
 
-                        <MudDivider Class="my-4" />
-                        <MudText Typo="Typo.h6" Class="mb-2">Documents Liés</MudText>
-                        
-                        <div class="d-flex flex-column gap-2">
-                            <div>
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">CONSIGNATIONS</MudText>
-                                @if (_consignations.Any())
-                                {
-                                    @foreach (var c in _consignations)
-                                    {
-                                        <div class="d-flex justify-space-between align-center py-1">
-                                            <MudText Typo="Typo.body2">@(c.DateHeureDeconsignation == null ? "🔴 Consigné" : "🟢 Déconsigné")</MudText>
-                                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => NavigationManager.NavigateTo("/consignations"))" />
-                                        </div>
-                                    }
-                                }
-                                else
-                                {
-                                    <MudText Typo="Typo.caption" Class="d-block mb-1">Aucune consignation</MudText>
-                                }
-                                <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Lock" OnClick="CreateConsignation" Size="Size.Small">Nouvelle Consignation</MudButton>
+                            <div class="mt-4">
+                                <MudText Typo="Typo.caption" Color="Color.Secondary">CONSIGNATIONS / FABRICATIONS</MudText>
+                                <div class="d-flex gap-2 mt-1">
+                                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Lock" OnClick="CreateConsignation" Size="Size.Small">Consignation</MudButton>
+                                    <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Build" OnClick="CreateFabrication" Size="Size.Small">Fabrication</MudButton>
+                                </div>
                             </div>
-
-                            <div class="mt-2">
-                                <MudText Typo="Typo.caption" Color="Color.Secondary">FABRICATIONS</MudText>
-                                @if (_fabrications.Any())
-                                {
-                                    @foreach (var f in _fabrications)
-                                    {
-                                        <div class="d-flex justify-space-between align-center py-1">
-                                            <MudText Typo="Typo.body2">@f.NumeroFabrication - @f.Statut</MudText>
-                                            <MudIconButton Icon="@Icons.Material.Filled.Visibility" Size="Size.Small" OnClick="@(() => NavigationManager.NavigateTo($"/fabrication/{f.Id}"))" />
-                                        </div>
-                                    }
-                                }
-                                else
-                                {
-                                    <MudText Typo="Typo.caption" Class="d-block mb-1">Aucune demande de fab.</MudText>
-                                }
-                                <MudButton Variant="Variant.Outlined" FullWidth="true" StartIcon="@Icons.Material.Filled.Build" OnClick="CreateFabrication" Size="Size.Small">Nouvelle Fabrication</MudButton>
-                            </div>
-                        </div>
-                    </MudItem>
-
-                    @* Form Side *@
-                    <MudItem xs="12" md="6">
-                        <MudSelect T="StatutDT" Label="Statut de la DT" @bind-Value="_dt.Statut" Required="true" Variant="Variant.Outlined" Class="mb-4">
-                            @foreach (StatutDT statut in Enum.GetValues(typeof(StatutDT)))
-                            {
-                                <MudSelectItem Value="@statut">@statut.ToString()</MudSelectItem>
-                            }
-                        </MudSelect>
-
-                        <MudTextField T="string" Label="Travail Exécuté" @bind-Value="_dt.TravailExecute" Lines="4" Variant="Variant.Outlined" Class="mb-4" />
-                        
-                        <MudGrid>
-                            <MudItem xs="6">
-                                <MudDatePicker Label="Début du Travail" @bind-Date="_dateDebut" Variant="Variant.Outlined" />
-                            </MudItem>
-                            <MudItem xs="6">
-                                <MudDatePicker Label="Fin du Travail" @bind-Date="_dateFin" Variant="Variant.Outlined" />
-                            </MudItem>
-                        </MudGrid>
-                        
-                        <MudNumericField T="double" Label="Arrêt de Production (H)" @bind-Value="_dt.DureeArretProductionHeures" Min="0" Variant="Variant.Outlined" HideSpinButtons="true" Class="my-4" />
-
-                        <MudButton Color="Color.Primary" Variant="Variant.Filled" FullWidth="true" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.Save" Size="Size.Large">
-                            Sauvegarder les détails de l'intervention
-                        </MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudCard>
-        </MudItem>
-
-        @* Mon Pointage Journalier Card (Stacked below) *@
-        <MudItem xs="12">
-            <MudCard Elevation="2" Class="pa-4">
-                <MudText Typo="Typo.h6" Class="mb-4" Color="Color.Primary">Mon Pointage Journalier (Heures / Jour)</MudText>
-                <MudAlert Severity="Severity.Info" Class="mb-6">
-                    Saisissez vos heures de travail pour chaque jour du mois pour cette intervention.
-                </MudAlert>
-
-                <MudGrid Spacing="1">
-                    @for (int i = 1; i <= 31; i++)
-                    {
-                        var day = i;
-                        <MudItem xs="2" sm="1" md="1">
-                            <MudNumericField T="double" Label="@day.ToString()" Value="@GetHoursForDay(day)" ValueChanged="@((double val) => SetHoursForDay(day, val))" Min="0" Max="24" HideSpinButtons="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                         </MudItem>
-                    }
-                </MudGrid>
-                
-                <MudDivider Class="my-6" />
-                
-                <div class="d-flex justify-space-between align-center">
-                    <MudText Typo="Typo.h6" Class="font-weight-bold">
-                        Total Heures Cumulées : <MudChip T="string" Color="Color.Secondary" Variant="Variant.Filled">@_myRole?.HeuresTravaillees H</MudChip>
-                    </MudText>
-                    <MudButton Color="Color.Secondary" Variant="Variant.Filled" OnClick="SavePointages" StartIcon="@Icons.Material.Filled.AccessTime" Size="Size.Large">
-                        Enregistrer mes Pointages
-                    </MudButton>
-                </div>
+
+                        @* Execution Side *@
+                        <MudItem xs="12" md="7">
+                            <MudSelect T="StatutDT" Label="Statut de la DT" @bind-Value="_dt.Statut" Required="true" Variant="Variant.Outlined" Class="mb-4">
+                                @foreach (StatutDT statut in Enum.GetValues(typeof(StatutDT)))
+                                {
+                                    <MudSelectItem Value="@statut">@statut.ToString()</MudSelectItem>
+                                }
+                            </MudSelect>
+
+                            <div class="d-flex gap-2 mb-4">
+                                <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="OpenAddLogDialog" StartIcon="@Icons.Material.Filled.History" FullWidth="true" Size="Size.Large">
+                                    Nouveau Compte-Rendu
+                                </MudButton>
+                                <MudButton Color="Color.Info" Variant="Variant.Outlined" OnClick="OpenAddPdrDialog" StartIcon="@Icons.Material.Filled.AddShoppingCart" FullWidth="true">
+                                    Consommer PDR
+                                </MudButton>
+                            </div>
+
+                            <MudText Typo="Typo.subtitle2" Color="Color.Secondary" Class="mb-2">Journal d'Intervention (Log)</MudText>
+                            <div style="max-height: 250px; overflow-y: auto;" class="border rounded pa-2">
+                                @if (_dt.JournalInterventions == null || !_dt.JournalInterventions.Any())
+                                {
+                                    <MudText Typo="Typo.caption" Class="pa-2 d-block">Aucun compte-rendu enregistré.</MudText>
+                                }
+                                else
+                                {
+                                    @foreach (var log in _dt.JournalInterventions.OrderByDescending(l => l.DateIntervention))
+                                    {
+                                        <div class="pa-2 mb-2 rounded border-l-4" style="border-left-color: var(--mud-palette-info); background-color: var(--mud-palette-background-grey);">
+                                            <div class="d-flex justify-space-between mb-1">
+                                                <MudText Typo="Typo.caption" Class="font-weight-bold">@log.DateIntervention.ToString("dd/MM HH:mm") - @log.Intervenant?.FullName</MudText>
+                                                <MudChip T="string" Size="Size.Small" Color="Color.Info" Variant="Variant.Text">@log.DureeHeures H</MudChip>
+                                            </div>
+                                            <MudText Typo="Typo.body2">@log.TravailExecute</MudText>
+                                        </div>
+                                    }
+                                }
+                            </div>
+                            
+                            <MudDivider Class="my-4" />
+                            <div class="d-flex justify-space-between align-center">
+                                <MudText Typo="Typo.subtitle1">
+                                    Total Personnel : <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">@_myRole?.HeuresTravaillees H</MudChip>
+                                </MudText>
+                                <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.Save">
+                                    Terminer / Sauvegarder Statut
+                                </MudButton>
+                            </div>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
             </MudCard>
         </MudItem>
     </MudGrid>
@@ -270,57 +228,40 @@ else
         await LoadData();
     }
 
-    private double GetHoursForDay(int day)
-    {
-        if (_myRole == null) return 0;
-        var p = _myRole.Pointages.FirstOrDefault(x => x.JourDuMois == day);
-        return p?.HeuresTravaillees ?? 0;
-    }
 
-    private void SetHoursForDay(int day, double hours)
-    {
-        if (_myRole == null) return;
-        
-        var p = _myRole.Pointages.FirstOrDefault(x => x.JourDuMois == day);
-        if (p != null)
-        {
-            if (hours > 0)
-                p.HeuresTravaillees = hours;
-            else
-                _myRole.Pointages.Remove(p); // Remove 0 hour entries to save space
-        }
-        else if (hours > 0)
-        {
-            // Determine date based on current month for simplicity, or the DT's month
-            var baseDate = _dt?.DateExecutionDebut ?? _dt?.DateEmission ?? DateTime.Now;
-            var dtDate = new DateTime(baseDate.Year, baseDate.Month, day > DateTime.DaysInMonth(baseDate.Year, baseDate.Month) ? 1 : day);
-            
-            _myRole.Pointages.Add(new PointageIntervention
-            {
-                JourDuMois = day,
-                HeuresTravaillees = hours,
-                DateIntervention = dtDate
-            });
-        }
-        
-        _myRole.HeuresTravaillees = _myRole.Pointages.Sum(x => x.HeuresTravaillees);
-    }
 
     private async Task SaveDtInfo()
     {
         if (_dt != null)
         {
             await DtService.UpdateAsync(_dt);
-            Snackbar.Add("Détails de l'intervention sauvegardés.", Severity.Success);
+            Snackbar.Add("Statut et journal mis à jour.", Severity.Success);
         }
     }
 
-    private async Task SavePointages()
+    private void SavePointages()
     {
-        if (_dt != null)
-        {
-            await DtService.UpdateAsync(_dt);
-            Snackbar.Add($"Pointages enregistrés. Total: {_myRole?.HeuresTravaillees}h", Severity.Success);
-        }
+        // Pointages are now automatically saved via Intervention Logs
+        Snackbar.Add("Les pointages sont maintenant automatiquement synchronisés via le Journal d'Intervention.", Severity.Info);
+    }
+
+    private async Task OpenAddLogDialog()
+    {
+        if (_dt == null) return;
+        var parameters = new DialogParameters { ["DtId"] = _dt.Id };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddInterventionLogDialog>("Nouveau Compte-Rendu", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
+    }
+
+    private async Task OpenAddPdrDialog()
+    {
+        if (_dt == null) return;
+        var parameters = new DialogParameters { ["DtId"] = _dt.Id };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddConsommableDialog>("Consommer PDR", parameters, options);
+        var result = await dialog.Result;
+        if (result is { Canceled: false }) await LoadData();
     }
 }
