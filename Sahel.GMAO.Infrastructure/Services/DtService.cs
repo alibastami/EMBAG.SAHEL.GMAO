@@ -44,8 +44,28 @@ public class DtService : IDtService
         {
             if (mineOnly)
             {
-                // Only those assigned to this user
-                query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Username == username);
+                if (user != null)
+                {
+                    Console.WriteLine($"[DT Service] Filtering for Executant: {username}, Specialty: {user.Specialite}");
+                    
+                    if (user.Specialite.HasValue)
+                    {
+                        var userSpec = user.Specialite.Value;
+                        query = query.Where(d => 
+                            d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username) ||
+                            d.SpecialiteRequise == userSpec);
+                    }
+                    else
+                    {
+                        query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+                    }
+                }
+                else
+                {
+                    Console.WriteLine($"[DT Service] Executant user not found in DB: {username}");
+                    query = query.Where(d => d.Intervenants.Any(i => i.Intervenant != null && i.Intervenant.Username == username));
+                }
             }
             // If not mineOnly, they see all (as requested: "YES all")
         }
@@ -88,6 +108,31 @@ public class DtService : IDtService
         
         // Notify DSI (Broadcast for new DT)
         await _notificationService.NotifyStatutChangedAsync(dt.Id, dt.NumeroDT, dt.Statut.ToString());
+        
+        // Auto-tag / assign technicians based on specialty
+        if (dt.SpecialiteRequise.HasValue)
+        {
+            var matchingTechs = await context.Users
+                .Where(u => u.Role == Sahel.GMAO.Core.Constants.AppRoles.Executant && u.Specialite == dt.SpecialiteRequise.Value)
+                .ToListAsync();
+
+            foreach (var tech in matchingTechs)
+            {
+                var role = new InterventionRole
+                {
+                    DemandeTravailId = dt.Id,
+                    IntervenantId = tech.Id,
+                    HeuresTravaillees = 0,
+                    Qualification = tech.Position,
+                    TauxHoraire = 500
+                };
+                context.InterventionRoles.Add(role);
+                
+                // Notify them
+                await _notificationService.NotifyNewDTAsync(tech.Id, dt.NumeroDT);
+            }
+            await context.SaveChangesAsync();
+        }
         
         return dt;
     }

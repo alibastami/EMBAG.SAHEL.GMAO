@@ -11,9 +11,10 @@ public static class DbInitializer
     public static async Task SeedAsync(GmaoDbContext context)
     {
         // 1. Seed Users
-        if (!await context.Users.AnyAsync(u => u.Username == "admin"))
+        var admin = await context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+        if (admin == null)
         {
-            var admin = new User
+            admin = new User
             {
                 Username = "admin",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@2026"),
@@ -25,13 +26,17 @@ public static class DbInitializer
                 CanViewAudit = true,
                 CanEditInventory = true
             };
-
             context.Users.Add(admin);
         }
-
-        if (!await context.Users.AnyAsync(u => u.Username == "tech1"))
+        else
         {
-            var tech = new User
+            admin.Specialite = Specialite.Automatisme; // Ensure specialty is set
+        }
+
+        var tech1 = await context.Users.FirstOrDefaultAsync(u => u.Username == "tech1");
+        if (tech1 == null)
+        {
+            tech1 = new User
             {
                 Username = "tech1",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Tech@2026"),
@@ -43,12 +48,18 @@ public static class DbInitializer
                 CanViewAudit = false,
                 CanEditInventory = false
             };
-            context.Users.Add(tech);
+            context.Users.Add(tech1);
+        }
+        else
+        {
+            tech1.Specialite = Specialite.Mecanique; // FORCE UPDATE
+            tech1.Role = AppRoles.Executant;
         }
 
-        if (!await context.Users.AnyAsync(u => u.Username == "tech2"))
+        var tech2 = await context.Users.FirstOrDefaultAsync(u => u.Username == "tech2");
+        if (tech2 == null)
         {
-            var tech = new User
+            tech2 = new User
             {
                 Username = "tech2",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("Tech@2026"),
@@ -60,7 +71,12 @@ public static class DbInitializer
                 CanViewAudit = false,
                 CanEditInventory = false
             };
-            context.Users.Add(tech);
+            context.Users.Add(tech2);
+        }
+        else
+        {
+            tech2.Specialite = Specialite.Electrique; // FORCE UPDATE
+            tech2.Role = AppRoles.Executant;
         }
 
         if (!await context.Users.AnyAsync(u => u.Username == "zone1"))

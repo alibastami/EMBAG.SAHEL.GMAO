@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
 using Sahel.GMAO.Core.Entities;
 using Sahel.GMAO.Core.Models;
+using Serilog;
 
 namespace Sahel.GMAO.Web.Auth;
 
@@ -10,7 +11,7 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly ProtectedLocalStorage _localStorage;
     private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-    private const string UserSessionKey = "GmaoUserSession";
+    private const string UserSessionKey = "UserSession"; // Standardized with DRH
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
     public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage)
@@ -28,7 +29,10 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                 return new AuthenticationState(_currentUser);
             }
 
-            for (int i = 0; i < 5; i++)
+            Serilog.Log.Information("[Auth] Attempting session recovery from local storage...");
+
+            // Retry loop (handles late JS Interop)
+            for (int i = 0; i < 15; i++)
             {
                 try
                 {
@@ -40,20 +44,23 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
                         if (session.Expiry > DateTime.UtcNow)
                         {
                             _currentUser = CreatePrincipalFromSession(session);
+                            Serilog.Log.Information("[Auth] Session recovered successfully on attempt {Attempt} for user: {Username}", i + 1, _currentUser.Identity?.Name);
+                            _ = UpdateSessionExpiry(session);
                             return new AuthenticationState(_currentUser);
                         }
                     }
                     break;
                 }
-                catch
+                catch (Exception ex)
                 {
+                    if (i == 14) Serilog.Log.Warning("[Auth] Session recovery failed after 15 retries: JS Interop not ready.");
                     await Task.Delay(150);
                 }
             }
         }
-        catch
+        catch (Exception ex)
         {
-            // Fail silently
+            Serilog.Log.Error(ex, "[Auth] Critical error during GetAuthenticationStateAsync");
         }
         finally
         {
@@ -61,6 +68,15 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         }
 
         return new AuthenticationState(_currentUser);
+    }
+
+    private async Task UpdateSessionExpiry(UserSession session)
+    {
+        try 
+        {
+            session.Expiry = DateTime.UtcNow.AddHours(8);
+            await _localStorage.SetAsync(UserSessionKey, session);
+        } catch { /* Ignore background update errors */ }
     }
 
     public async Task MarkUserAsAuthenticated(User user)
