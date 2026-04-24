@@ -10,6 +10,20 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(GmaoDbContext context)
     {
+        // 0. Seed Working Profiles
+        if (!await context.WorkingProfiles.AnyAsync())
+        {
+            context.WorkingProfiles.AddRange(
+                new WorkingProfile { Name = "Mécanicien Senior", HourlyRate = 1200, Specialite = Specialite.Mecanique },
+                new WorkingProfile { Name = "Électricien Senior", HourlyRate = 1100, Specialite = Specialite.Electrique },
+                new WorkingProfile { Name = "Technicien Junior", HourlyRate = 800, Specialite = Specialite.Autre }
+            );
+            await context.SaveChangesAsync();
+        }
+
+        var mecProfile = await context.WorkingProfiles.FirstOrDefaultAsync(p => p.Name == "Mécanicien Senior");
+        var elecProfile = await context.WorkingProfiles.FirstOrDefaultAsync(p => p.Name == "Électricien Senior");
+
         // 1. Seed Users
         var admin = await context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
         if (admin == null)
@@ -44,6 +58,7 @@ public static class DbInitializer
                 Role = AppRoles.Executant,
                 Position = "Technicien Maintenance",
                 Specialite = Specialite.Mecanique,
+                WorkingProfileId = mecProfile?.Id,
                 CanManageUsers = false,
                 CanViewAudit = false,
                 CanEditInventory = false
@@ -54,6 +69,7 @@ public static class DbInitializer
         {
             tech1.Specialite = Specialite.Mecanique; // FORCE UPDATE
             tech1.Role = AppRoles.Executant;
+            if (tech1.WorkingProfileId == null) tech1.WorkingProfileId = mecProfile?.Id;
         }
 
         var tech2 = await context.Users.FirstOrDefaultAsync(u => u.Username == "tech2");
@@ -67,6 +83,7 @@ public static class DbInitializer
                 Role = AppRoles.Executant,
                 Position = "Technicien Électricité",
                 Specialite = Specialite.Electrique,
+                WorkingProfileId = elecProfile?.Id,
                 CanManageUsers = false,
                 CanViewAudit = false,
                 CanEditInventory = false
@@ -77,6 +94,7 @@ public static class DbInitializer
         {
             tech2.Specialite = Specialite.Electrique; // FORCE UPDATE
             tech2.Role = AppRoles.Executant;
+            if (tech2.WorkingProfileId == null) tech2.WorkingProfileId = elecProfile?.Id;
         }
 
         if (!await context.Users.AnyAsync(u => u.Username == "zone1"))
