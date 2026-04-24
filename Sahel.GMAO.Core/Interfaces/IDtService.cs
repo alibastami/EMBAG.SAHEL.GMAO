@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Sahel.GMAO.Core.Entities;
 using Sahel.GMAO.Core.Enums;
+using Sahel.GMAO.Core.Models;
 
 namespace Sahel.GMAO.Core.Interfaces;
 
@@ -16,6 +17,7 @@ public interface IDtService
     Task UpdateExecutionAsync(DemandeTravail dt);
     Task UpdateAsync(DemandeTravail dt);
     Task AddConsommableAsync(int dtId, int articleId, double quantite, decimal? prixUnitaire = null, string? nBsm = null, string? observation = null);
-    Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification, decimal? tauxHoraire = null);
+    Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification, decimal? tauxHoraire = null, LaborUnit? unit = null);
     Task AddInterventionLogAsync(InterventionLog log);
+    Task<DashboardStats> GetDashboardStatsAsync();
 }

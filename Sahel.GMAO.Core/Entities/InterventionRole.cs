@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Sahel.GMAO.Core.Enums;
 
 namespace Sahel.GMAO.Core.Entities;
 
@@ -16,6 +17,7 @@ public class InterventionRole
     public string Qualification { get; set; } = string.Empty;
     public double HeuresTravaillees { get; set; }
     public decimal TauxHoraire { get; set; }
+    public LaborUnit Unit { get; set; } = LaborUnit.Heure;
 
     public virtual ICollection<PointageIntervention> Pointages { get; set; } = new List<PointageIntervention>();
 }

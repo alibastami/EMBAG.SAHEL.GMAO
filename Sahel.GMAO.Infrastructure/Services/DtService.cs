@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Sahel.GMAO.Core.Entities;
 using Sahel.GMAO.Core.Enums;
 using Sahel.GMAO.Core.Interfaces;
+using Sahel.GMAO.Core.Models;
 using Sahel.GMAO.Infrastructure.Data;
 
 namespace Sahel.GMAO.Infrastructure.Services;
@@ -180,7 +181,8 @@ public class DtService : IDtService
             {
                 intervenant.HeuresTravaillees = intervenant.Pointages.Sum(p => p.HeuresTravaillees);
             }
-            dt.TotalCoutMainOeuvre += (decimal)intervenant.HeuresTravaillees * intervenant.TauxHoraire;
+            var rate = intervenant.Unit == LaborUnit.Jour ? intervenant.TauxHoraire / 8 : intervenant.TauxHoraire;
+            dt.TotalCoutMainOeuvre += (decimal)intervenant.HeuresTravaillees * rate;
         }
         dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
 
@@ -219,7 +221,7 @@ public class DtService : IDtService
         }
     }
 
-    public async Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification, decimal? tauxHoraire = null)
+    public async Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification, decimal? tauxHoraire = null, LaborUnit? unit = null)
     {
         using var context = await _factory.CreateDbContextAsync();
         var dt = await context.DemandesTravail.Include(d => d.Intervenants).FirstOrDefaultAsync(d => d.Id == dtId);
@@ -231,7 +233,10 @@ public class DtService : IDtService
                 // Try to get from user profile
                 var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == userId);
                 tauxHoraire = user?.WorkingProfile?.HourlyRate ?? 500;
+                unit ??= user?.WorkingProfile?.Unit ?? LaborUnit.Heure;
             }
+
+            unit ??= LaborUnit.Heure;
 
             var role = new InterventionRole
             {
@@ -239,13 +244,15 @@ public class DtService : IDtService
                 IntervenantId = userId,
                 HeuresTravaillees = heures,
                 Qualification = qualification,
-                TauxHoraire = tauxHoraire.Value
+                TauxHoraire = tauxHoraire.Value,
+                Unit = unit.Value
             };
 
             context.InterventionRoles.Add(role);
 
             // Update DT Totals
-            dt.TotalCoutMainOeuvre += (decimal)heures * role.TauxHoraire;
+            var rate = role.Unit == LaborUnit.Jour ? role.TauxHoraire / 8 : role.TauxHoraire;
+            dt.TotalCoutMainOeuvre += (decimal)heures * rate;
             dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
 
             await context.SaveChangesAsync();
@@ -281,13 +288,15 @@ public class DtService : IDtService
             {
                 var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == log.IntervenantId);
                 var rate = user?.WorkingProfile?.HourlyRate ?? 500;
+                var unit = user?.WorkingProfile?.Unit ?? LaborUnit.Heure;
 
                 role = new InterventionRole
                 {
                     DemandeTravailId = dt.Id,
                     IntervenantId = log.IntervenantId,
                     Qualification = user?.Position ?? "Intervenant",
-                    TauxHoraire = rate
+                    TauxHoraire = rate,
+                    Unit = unit
                 };
                 context.InterventionRoles.Add(role);
                 dt.Intervenants.Add(role);
@@ -315,10 +324,58 @@ public class DtService : IDtService
             }
 
             // 4. Update Global Totals
-            dt.TotalCoutMainOeuvre += (decimal)log.DureeHeures * role.TauxHoraire;
+            var hourlyRate = role.Unit == LaborUnit.Jour ? role.TauxHoraire / 8 : role.TauxHoraire;
+            dt.TotalCoutMainOeuvre += (decimal)log.DureeHeures * hourlyRate;
             dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
 
             await context.SaveChangesAsync();
         }
+    }
+
+    public async Task<DashboardStats> GetDashboardStatsAsync()
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        var now = DateTime.Now;
+        var startOfMonth = new DateTime(now.Year, now.Month, 1);
+
+        var totalDtThisMonth = await context.DemandesTravail
+            .CountAsync(d => d.DateEmission >= startOfMonth);
+
+        var closedDtThisMonth = await context.DemandesTravail
+            .CountAsync(d => d.DateEmission >= startOfMonth && d.Statut == StatutDT.Cloturee);
+
+        var pendingDt = await context.DemandesTravail
+            .CountAsync(d => d.Statut == StatutDT.EnCours || d.Statut == StatutDT.EnAttente);
+
+        var stockAlerts = await context.ArticlesPdr
+            .CountAsync(a => a.QuantiteEnStock <= a.SeuilAlerte);
+
+        var stats = new DashboardStats
+        {
+            TotalDtThisMonth = totalDtThisMonth,
+            PendingDt = pendingDt,
+            StockAlerts = stockAlerts,
+            RealizationRate = totalDtThisMonth > 0 ? (double)closedDtThisMonth / totalDtThisMonth * 100 : 0,
+            MonthlyActivities = new List<MonthlyActivity>()
+        };
+
+        // Last 6 months for chart
+        for (int i = 5; i >= 0; i--)
+        {
+            var date = now.AddMonths(-i);
+            var monthStart = new DateTime(date.Year, date.Month, 1);
+            var monthEnd = monthStart.AddMonths(1);
+            
+            var count = await context.DemandesTravail
+                .CountAsync(d => d.DateEmission >= monthStart && d.DateEmission < monthEnd);
+
+            stats.MonthlyActivities.Add(new MonthlyActivity
+            {
+                MonthName = date.ToString("MMM"),
+                Count = count
+            });
+        }
+
+        return stats;
     }
 }

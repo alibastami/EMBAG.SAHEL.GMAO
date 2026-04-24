@@ -17,9 +17,17 @@
                     <MudTextField T="string" Label="Nom du Profil" @bind-Value="Profile.Name" Required="true" RequiredError="Le nom est requis" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12" md="6">
-                    <MudNumericField T="decimal" Label="Taux Horaire (DA/H)" @bind-Value="Profile.HourlyRate" Required="true" Min="0" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="DA" />
+                    <MudNumericField T="decimal" Label="Taux (DA)" @bind-Value="Profile.HourlyRate" Required="true" Min="0" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="DA" />
                 </MudItem>
                 <MudItem xs="12" md="6">
+                    <MudSelect T="LaborUnit" Label="Unité" @bind-Value="Profile.Unit" Variant="Variant.Outlined">
+                        @foreach (LaborUnit unit in Enum.GetValues(typeof(LaborUnit)))
+                        {
+                            <MudSelectItem Value="@unit">@unit.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12">
                     <MudSelect T="Specialite" Label="Spécialité" @bind-Value="Profile.Specialite" Variant="Variant.Outlined">
                         @foreach (Specialite spec in Enum.GetValues(typeof(Specialite)))
                         {

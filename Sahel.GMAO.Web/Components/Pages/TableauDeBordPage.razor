@@ -2,6 +2,7 @@
 @using Sahel.GMAO.Core.Constants
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Models
 @inject IDtService DtService
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
@@ -17,7 +18,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
                     <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" Class="mr-4" />
                     <div>
-                        <MudText Typo="Typo.h6">24</MudText>
+                        <MudText Typo="Typo.h6">@_stats.TotalDtThisMonth</MudText>
                         <MudText Typo="Typo.caption">Total DT ce mois</MudText>
                     </div>
                 </MudPaper>
@@ -26,7 +27,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
                     <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
                     <div>
-                        <MudText Typo="Typo.h6">8</MudText>
+                        <MudText Typo="Typo.h6">@_stats.PendingDt</MudText>
                         <MudText Typo="Typo.caption">DT en cours</MudText>
                     </div>
                 </MudPaper>
@@ -35,7 +36,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
                     <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-4" />
                     <div>
-                        <MudText Typo="Typo.h6">3</MudText>
+                        <MudText Typo="Typo.h6">@_stats.StockAlerts</MudText>
                         <MudText Typo="Typo.caption">Alertes Stock</MudText>
                     </div>
                 </MudPaper>
@@ -44,7 +45,7 @@
                 <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
                     <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
                     <div>
-                        <MudText Typo="Typo.h6">92%</MudText>
+                        <MudText Typo="Typo.h6">@_stats.RealizationRate.ToString("F1")%</MudText>
                         <MudText Typo="Typo.caption">Taux de réalisation</MudText>
                     </div>
                 </MudPaper>
@@ -59,9 +60,20 @@
                         </CardHeaderContent>
                     </MudCardHeader>
                     <MudCardContent>
-                        <div class="d-flex align-center justify-center" style="height: 300px;">
-                             <MudText Typo="Typo.body2" Color="Color.Secondary">Graphique des interventions apparaîtra ici.</MudText>
-                        </div>
+                        @if (_stats.MonthlyActivities.Any())
+                        {
+                            <MudChart ChartType="ChartType.Bar" 
+                                      ChartSeries="@_series" 
+                                      XAxisLabels="@_xAxisLabels" 
+                                      Width="100%" 
+                                      Height="300px" />
+                        }
+                        else
+                        {
+                            <div class="d-flex align-center justify-center" style="height: 300px;">
+                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                            </div>
+                        }
                     </MudCardContent>
                 </MudCard>
             </MudItem>
@@ -75,9 +87,14 @@
                     </MudCardHeader>
                     <MudCardContent>
                         <MudList T="string" Dense="true">
-                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Warning">DT-2024-001 - Révision OFFSET</MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Info">DT-2024-002 - Changement Courroie</MudListItem>
-                            <MudListItem Icon="@Icons.Material.Filled.Circle" IconColor="Color.Success">DT-2023-085 - Maintenance Préventive</MudListItem>
+                            @foreach (var dt in _recentDts)
+                            {
+                                <MudListItem Icon="@Icons.Material.Filled.Circle" 
+                                             IconColor="@GetStatusColor(dt.Statut)"
+                                             OnClick="@(() => NavManager.NavigateTo($"/demandes/{dt.Id}"))">
+                                    @dt.NumeroDT - @dt.TravailDemande
+                                </MudListItem>
+                            }
                         </MudList>
                     </MudCardContent>
                 </MudCard>
@@ -132,7 +149,11 @@
 
 @code {
     private List<DemandeTravail> _myTasks = new();
+    private List<DemandeTravail> _recentDts = new();
     private int _myTasksCount = 0;
+    private DashboardStats _stats = new();
+    private List<ChartSeries> _series = new();
+    private string[] _xAxisLabels = Array.Empty<string>();
 
     protected override async Task OnInitializedAsync()
     {
@@ -141,10 +162,35 @@
         var username = user.Identity?.Name ?? "";
         var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
 
-        if (role == AppRoles.Executant)
+        if (role == AppRoles.DSI)
+        {
+            _stats = await DtService.GetDashboardStatsAsync();
+            var allDts = await DtService.GetAllAsync();
+            _recentDts = allDts.OrderByDescending(d => d.DateEmission).Take(5).ToList();
+
+            // Prepare chart data
+            _series.Clear();
+            _series.Add(new ChartSeries 
+            { 
+                Name = "Interventions", 
+                Data = _stats.MonthlyActivities.Select(a => (double)a.Count).ToArray() 
+            });
+            _xAxisLabels = _stats.MonthlyActivities.Select(a => a.MonthName).ToArray();
+        }
+        else if (role == AppRoles.Executant)
         {
             _myTasks = await DtService.GetForUserAsync(username, role, true);
             _myTasksCount = _myTasks.Count(d => d.Statut != Sahel.GMAO.Core.Enums.StatutDT.Cloturee);
         }
     }
+
+    private Color GetStatusColor(Sahel.GMAO.Core.Enums.StatutDT statut) => statut switch
+    {
+        Sahel.GMAO.Core.Enums.StatutDT.EnAttente => Color.Info,
+        Sahel.GMAO.Core.Enums.StatutDT.EnCours => Color.Warning,
+        Sahel.GMAO.Core.Enums.StatutDT.Terminee => Color.Primary,
+        Sahel.GMAO.Core.Enums.StatutDT.Cloturee => Color.Success,
+        Sahel.GMAO.Core.Enums.StatutDT.Annulee => Color.Error,
+        _ => Color.Default
+    };
 }

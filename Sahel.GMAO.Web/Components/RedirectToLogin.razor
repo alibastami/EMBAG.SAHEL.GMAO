@@ -1,8 +1,11 @@
 @inject NavigationManager NavigationManager
 
 @code {
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        NavigationManager.NavigateTo("login");
+        // Give the AuthenticationStateProvider plenty of time (1.5s) to recover
+        // the session from local storage before giving up and redirecting.
+        await Task.Delay(1500);
+        NavigationManager.NavigateTo("login", true);
     }
 }

@@ -32,29 +32,44 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
             Serilog.Log.Information("[Auth] Attempting session recovery from local storage...");
 
             // Retry loop (handles late JS Interop)
-            for (int i = 0; i < 15; i++)
+            // Increased to 25 retries with 200ms delay = 5 seconds of resilience
+            for (int i = 0; i < 25; i++)
             {
                 try
                 {
                     var result = await _localStorage.GetAsync<UserSession>(UserSessionKey);
                     
-                    if (result.Success && result.Value != null)
+                    if (result.Success)
                     {
-                        var session = result.Value;
-                        if (session.Expiry > DateTime.UtcNow)
+                        if (result.Value != null)
                         {
-                            _currentUser = CreatePrincipalFromSession(session);
-                            Serilog.Log.Information("[Auth] Session recovered successfully on attempt {Attempt} for user: {Username}", i + 1, _currentUser.Identity?.Name);
-                            _ = UpdateSessionExpiry(session);
-                            return new AuthenticationState(_currentUser);
+                            var session = result.Value;
+                            if (session.Expiry > DateTime.UtcNow)
+                            {
+                                _currentUser = CreatePrincipalFromSession(session);
+                                Serilog.Log.Information("[Auth] SUCCESS: Session recovered on attempt {Attempt} for user: {Username}", i + 1, _currentUser.Identity?.Name);
+                                _ = UpdateSessionExpiry(session);
+                                return new AuthenticationState(_currentUser);
+                            }
+                            else
+                            {
+                                Serilog.Log.Warning("[Auth] Session found but expired at {Expiry}", session.Expiry);
+                            }
                         }
+                        else
+                        {
+                            Serilog.Log.Debug("[Auth] No session key found in local storage (attempt {Attempt})", i + 1);
+                        }
+                        
+                        // If we got a successful response (even null), and it's not the first few attempts, 
+                        // it's likely there truly is no session.
+                        if (i > 5) break; 
                     }
-                    break;
                 }
                 catch (Exception ex)
                 {
-                    if (i == 14) Serilog.Log.Warning("[Auth] Session recovery failed after 15 retries: JS Interop not ready.");
-                    await Task.Delay(150);
+                    if (i == 24) Serilog.Log.Error("[Auth] FATAL: Session recovery failed after 25 retries. JS Interop error: {Message}", ex.Message);
+                    await Task.Delay(200);
                 }
             }
         }

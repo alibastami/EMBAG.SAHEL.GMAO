@@ -24,7 +24,19 @@
                 }
             </MudSelect>
 
-            <MudNumericField T="decimal" Label="Taux Horaire (DA/H)" @bind-Value="_tauxHoraire" Required="true" Variant="Variant.Outlined" Class="mt-4" Min="0" />
+            <MudGrid Class="mt-4">
+                <MudItem xs="8">
+                    <MudNumericField T="decimal" Label="Taux (DA)" @bind-Value="_tauxHoraire" Required="true" Variant="Variant.Outlined" Min="0" Adornment="Adornment.End" AdornmentText="DA" />
+                </MudItem>
+                <MudItem xs="4">
+                    <MudSelect T="LaborUnit" Label="Unité" @bind-Value="_unit" Variant="Variant.Outlined">
+                        @foreach (LaborUnit unit in Enum.GetValues(typeof(LaborUnit)))
+                        {
+                            <MudSelectItem Value="@unit">@unit.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -40,6 +52,7 @@
     private List<User> _techniciens = new();
     private User? _selectedTechnicien;
     private decimal _tauxHoraire = 500;
+    private LaborUnit _unit = LaborUnit.Heure;
     
     private MudForm _form = default!;
     private bool _success;
@@ -58,6 +71,7 @@
         {
             // Set rate from profile if available
             _tauxHoraire = user.WorkingProfile?.HourlyRate ?? 500;
+            _unit = user.WorkingProfile?.Unit ?? LaborUnit.Heure;
         }
     }
 
@@ -71,7 +85,7 @@
             try
             {
                 // Add as intervenant (assignment)
-                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position, _tauxHoraire);
+                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position, _tauxHoraire, _unit);
                 
                 // Update status to EnCours
                 await DtService.UpdateStatusAsync(Dt.Id, StatutDT.EnCours);
