@@ -23,6 +23,8 @@
                     <MudSelectItem Value="@tech">@tech.FullName (@tech.Role)</MudSelectItem>
                 }
             </MudSelect>
+
+            <MudNumericField T="decimal" Label="Taux Horaire (DA/H)" @bind-Value="_tauxHoraire" Required="true" Variant="Variant.Outlined" Class="mt-4" Min="0" />
         </MudForm>
     </DialogContent>
     <DialogActions>
@@ -37,6 +39,7 @@
     
     private List<User> _techniciens = new();
     private User? _selectedTechnicien;
+    private decimal _tauxHoraire = 500;
     
     private MudForm _form = default!;
     private bool _success;
@@ -57,7 +60,7 @@
             try
             {
                 // Add as intervenant (assignment)
-                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position);
+                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position, _tauxHoraire);
                 
                 // Update status to EnCours
                 await DtService.UpdateStatusAsync(Dt.Id, StatutDT.EnCours);

@@ -3,8 +3,10 @@
 @using Sahel.GMAO.Core.Interfaces
 @using Sahel.GMAO.Web.Components.Dialogs
 @inject INatureTravailService NatureService
+@inject IBackupService BackupService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 @attribute [Authorize(Roles = "DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Configuration du Système</MudText>
@@ -53,11 +55,106 @@
             </MudGrid>
         </MudPaper>
     </MudTabPanel>
+
+    <MudTabPanel Text="Base de données & Sauvegarde" Icon="@Icons.Material.Filled.Storage">
+        <MudText Typo="Typo.h6" Class="mb-4">Gestion des Données</MudText>
+        <MudGrid>
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Sauvegarde SQL (.bak)</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Sauvegarde complète du serveur SQL.</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.Backup" Color="Color.Primary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudTextField @bind-Value="_customBackupPath" Label="Dossier de destination (Optionnel)" Placeholder="Par défaut: dossier Backups" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudAlert Severity="Severity.Info" Dense="true" Class="mt-4">
+                            Les fichiers sont stockés sur le serveur.
+                        </MudAlert>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   StartIcon="@Icons.Material.Filled.CloudUpload" 
+                                   OnClick="OnCreateBackup" 
+                                   Disabled="@_isBackingUp" FullWidth="true">
+                            @(_isBackingUp ? "EN COURS..." : "CRÉER SAUVEGARDE")
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Import / Restauration</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Restaurer la base depuis un fichier .bak</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.SettingsBackupRestore" Color="Color.Error" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                         <MudFileUpload T="IBrowserFile" FilesChanged="OnRestoreBackup" Accept=".bak">
+                            <ActivatorContent>
+                                <MudButton Variant="Variant.Outlined"
+                                           Color="Color.Error"
+                                           StartIcon="@Icons.Material.Filled.FileUpload"
+                                           Disabled="@_isRestoring" FullWidth="true">
+                                    @( _isRestoring ? "RESTAURATION..." : "IMPORTER & RESTAURER" )
+                                </MudButton>
+                            </ActivatorContent>
+                        </MudFileUpload>
+                        <MudAlert Severity="Severity.Warning" Dense="true" Class="mt-4">
+                            <b>Attention:</b> Toutes les données actuelles seront écrasées.
+                        </MudAlert>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="2" Class="pa-4">
+                    <MudCardHeader>
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Exportation SQLite (.db)</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">Format portable pour version nomade.</MudText>
+                        </CardHeaderContent>
+                        <CardHeaderActions>
+                            <MudIcon Icon="@Icons.Material.Filled.FileDownload" Color="Color.Tertiary" />
+                        </CardHeaderActions>
+                    </MudCardHeader>
+                    <MudCardContent>
+                        <MudAlert Severity="Severity.Info" Dense="true">
+                            Le fichier sera téléchargé via votre navigateur.
+                        </MudAlert>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Tertiary" 
+                                   StartIcon="@Icons.Material.Filled.FileDownload" 
+                                   OnClick="OnExportToSqlite" 
+                                   Disabled="@_isExporting" FullWidth="true">
+                            @(_isExporting ? "EXPORT EN COURS..." : "TÉLÉCHARGER (.DB)")
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    </MudTabPanel>
 </MudTabs>
 
 @code {
     private List<NatureTravail> _natures = new();
     private bool _loadingNatures = true;
+    private bool _isBackingUp = false;
+    private bool _isExporting = false;
+    private bool _isRestoring = false;
+    private string _customBackupPath = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -130,6 +227,99 @@
             await NatureService.DeleteAsync(nature.Id);
             Snackbar.Add("Nature de travail supprimée", Severity.Success);
             await LoadNatures();
+        }
+    }
+
+    private async Task OnCreateBackup()
+    {
+        _isBackingUp = true;
+        try
+        {
+            var path = await BackupService.CreateBackupAsync(_customBackupPath);
+            Snackbar.Add($"Sauvegarde réussie : {Path.GetFileName(path)}", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors de la sauvegarde : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isBackingUp = false;
+        }
+    }
+
+    private async Task OnRestoreBackup(IBrowserFile file)
+    {
+        if (file == null) return;
+        
+        var result = await DialogService.ShowMessageBox(
+            "Confirmation de Restauration",
+            $"Êtes-vous sûr de vouloir restaurer la base de données depuis '{file.Name}' ? Cette action est irréversible et écrasera toutes les données actuelles.",
+            yesText: "Confirmer la Restauration", cancelText: "Annuler");
+
+        if (result != true) return;
+
+        _isRestoring = true;
+        StateHasChanged();
+
+        try
+        {
+            var tempPath = Path.Combine(Path.GetTempPath(), file.Name);
+            using (var stream = file.OpenReadStream(maxAllowedSize: 1024 * 1024 * 500)) 
+            {
+                using (var fileStream = File.Create(tempPath))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+            }
+
+            await BackupService.RestoreBackupAsync(tempPath);
+            
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+
+            Snackbar.Add("Base de données restaurée avec succès ! L'application va redémarrer.", Severity.Success);
+            
+            await Task.Delay(2000);
+            await JS.InvokeVoidAsync("location.reload");
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors de la restauration : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isRestoring = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnExportToSqlite()
+    {
+        _isExporting = true;
+        try
+        {
+            var fileName = await BackupService.ExportToSqliteAsync();
+            var filePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Exports", fileName);
+            
+            if (File.Exists(filePath))
+            {
+                using var stream = File.OpenRead(filePath);
+                using var streamRef = new DotNetStreamReference(stream);
+                await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+                Snackbar.Add("Exportation réussie. Le téléchargement va commencer.", Severity.Success);
+            }
+            else
+            {
+                throw new Exception("Le fichier exporté est introuvable.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors de l'exportation : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isExporting = false;
         }
     }
 }

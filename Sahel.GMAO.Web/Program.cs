@@ -64,6 +64,7 @@ builder.Services.AddScoped<IPdfService, PdfService>();
 builder.Services.AddScoped<INotificationService, Sahel.GMAO.Web.Services.NotificationService>();
 builder.Services.AddScoped<INatureTravailService, NatureTravailService>();
 builder.Services.AddScoped<IConsignationService, ConsignationService>();
+builder.Services.AddScoped<IBackupService, BackupService>();
 
 var app = builder.Build();
 Log.Information(">>> GMAO: Environment: {Env}", app.Environment.EnvironmentName);

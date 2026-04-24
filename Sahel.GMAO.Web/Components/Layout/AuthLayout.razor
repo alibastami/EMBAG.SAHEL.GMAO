@@ -5,11 +5,28 @@
 <MudSnackbarProvider />
 <MudPopoverProvider />
 
-<MudLayout>
-    <MudMainContent Class="d-flex align-center justify-center" Style="min-height: 100vh; background: #E8F5E9;">
+<div class="auth-layout">
+    <div class="auth-content">
         @Body
-    </MudMainContent>
-</MudLayout>
+    </div>
+    <AppFooter />
+</div>
+
+<style>
+    .auth-layout {
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        background-color: #E8F5E9;
+    }
+
+    .auth-content {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
 
 @code {
     private MudTheme _theme = new MudTheme()

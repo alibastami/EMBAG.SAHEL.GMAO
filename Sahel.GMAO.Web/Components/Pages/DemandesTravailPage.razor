@@ -132,8 +132,12 @@
 
     private async Task DownloadPdf(DemandeTravail dt)
     {
-        var pdfBytes = await PdfService.GenerateDtPdfAsync(dt);
-        var fileName = $"{dt.NumeroDT}.pdf";
+        // Fetch full DT details to ensure Consommables, Intervenants, and Pointages are loaded for the PDF
+        var fullDt = await DtService.GetByIdAsync(dt.Id);
+        if (fullDt == null) return;
+
+        var pdfBytes = await PdfService.GenerateDtPdfAsync(fullDt);
+        var fileName = $"{fullDt.NumeroDT}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
         await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
     }

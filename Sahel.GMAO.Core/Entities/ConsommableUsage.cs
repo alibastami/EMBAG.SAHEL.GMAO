@@ -15,4 +15,7 @@ public class ConsommableUsage
 
     public double Quantite { get; set; }
     public decimal PrixUnitaireApplique { get; set; } // Historical price at time of use
+    
+    public string? N_BSM { get; set; }
+    public string? Observation { get; set; }
 }

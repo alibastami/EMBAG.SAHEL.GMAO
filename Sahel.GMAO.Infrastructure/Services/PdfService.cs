@@ -198,12 +198,12 @@ public class PdfService : IPdfService
                         for(int r=0; r<piecesRows; r++)
                         {
                             var c = r < consommables.Count ? consommables[r] : null;
-                            table.Cell().Border(1).Padding(2).Text("").FontSize(8); // N° BSM
+                            table.Cell().Border(1).Padding(2).Text(c?.N_BSM ?? "").FontSize(8);
                             table.Cell().Border(1).Padding(2).Text(c?.ArticlePdr?.Designation ?? "").FontSize(8);
                             table.Cell().Border(1).Padding(2).Text(c != null ? c.Quantite.ToString() : "").FontSize(8);
                             table.Cell().Border(1).Padding(2).Text(c != null ? c.PrixUnitaireApplique.ToString("N2") : "").FontSize(8);
                             table.Cell().Border(1).Padding(2).Text(c != null ? ((decimal)c.Quantite * c.PrixUnitaireApplique).ToString("N2") : "").FontSize(8);
-                            table.Cell().Border(1).Padding(2).Text("").FontSize(8);
+                            table.Cell().Border(1).Padding(2).Text(c?.Observation ?? "").FontSize(8);
                         }
                     });
 

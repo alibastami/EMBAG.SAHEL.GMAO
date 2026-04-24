@@ -12,15 +12,24 @@
         <MudForm @ref="_form">
             <MudGrid>
                 <MudItem xs="12">
-                    <MudSelect T="int" Label="Article PDR" @bind-Value="_selectedArticleId" Required="true" Variant="Variant.Outlined">
+                    <MudSelect T="int" Label="Article PDR" Value="_selectedArticleId" ValueChanged="OnArticleSelected" Required="true" Variant="Variant.Outlined">
                         @foreach (var art in _articles)
                         {
                             <MudSelectItem Value="@art.Id">@art.CodeArticle - @art.Designation (@art.QuantiteEnStock @art.Unite)</MudSelectItem>
                         }
                     </MudSelect>
                 </MudItem>
-                <MudItem xs="12">
+                <MudItem xs="6">
                     <MudNumericField T="double" Label="Quantité" @bind-Value="_quantite" Required="true" Variant="Variant.Outlined" Min="0.1" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudNumericField T="decimal" Label="Prix Unitaire (DA)" @bind-Value="_prixUnitaire" Required="true" Variant="Variant.Outlined" Min="0" />
+                </MudItem>
+                <MudItem xs="6">
+                    <MudTextField Label="N° BSM" @bind-Value="_nBsm" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField Label="Observation" @bind-Value="_observation" Variant="Variant.Outlined" Lines="2" />
                 </MudItem>
             </MudGrid>
         </MudForm>
@@ -39,6 +48,16 @@
     private List<ArticlePdr> _articles = new();
     private int _selectedArticleId;
     private double _quantite = 1;
+    private decimal _prixUnitaire;
+    private string? _nBsm;
+    private string? _observation;
+
+    private void OnArticleSelected(int id)
+    {
+        _selectedArticleId = id;
+        var art = _articles.FirstOrDefault(a => a.Id == id);
+        if (art != null) _prixUnitaire = art.PrixUnitaire;
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,7 +80,7 @@
 
             try
             {
-                await DtService.AddConsommableAsync(DtId, _selectedArticleId, _quantite);
+                await DtService.AddConsommableAsync(DtId, _selectedArticleId, _quantite, _prixUnitaire, _nBsm, _observation);
                 Snackbar.Add("Pièce consommée avec succès", Severity.Success);
                 MudDialog.Close(DialogResult.Ok(true));
             }

@@ -10,21 +10,29 @@
 @inject ISnackbar Snackbar
 
 <div class="login-card">
+    @* Logo Section *@
     <div class="d-flex flex-column align-center mb-6">
-        <MudIcon Icon="@Icons.Material.Filled.Engineering" Color="Color.Primary" Size="Size.Large" Style="font-size: 4rem;" />
-        <span class="company-text">SAHEL — GMAO</span>
+        @if (System.IO.File.Exists(System.IO.Path.Combine("wwwroot", "images", "gipec-logo-big.jpg")))
+        {
+            <img src="/images/gipec-logo-big.jpg" alt="GIPEC" width="200" class="mb-2" />
+        }
+        <span class="company-text">EPE EMBAG SPA</span>
     </div>
 
+    @* Subtitle / Main Label *@
     <div class="text-center mb-8">
-        <span class="app-subtitle">Gestion de Maintenance</span>
+        <span class="app-subtitle">SAHEL GMAO</span>
     </div>
 
+    @* Form *@
     <MudForm @ref="_form" @bind-IsValid="@_success">
         <MudTextField T="string" 
                       @bind-Value="_username" 
                       Label="Nom d'utilisateur" 
                       Variant="Variant.Outlined" 
                       FullWidth="true"
+                      Margin="Margin.Dense"
+                      ShrinkLabel="true"
                       Class="mb-4" />
 
         <MudTextField T="string" 
@@ -33,6 +41,8 @@
                       InputType="@_passwordType"
                       Variant="Variant.Outlined" 
                       FullWidth="true"
+                      Margin="Margin.Dense"
+                      ShrinkLabel="true"
                       Adornment="Adornment.End"
                       AdornmentIcon="@_passwordIcon"
                       OnAdornmentClick="TogglePasswordVisibility"
@@ -42,22 +52,24 @@
                    Color="Color.Primary" 
                    Size="Size.Large" 
                    FullWidth="true" 
+                   ButtonType="ButtonType.Button"
                    OnClick="LoginAsync" 
                    Disabled="@_loading">
             @if (_loading)
             {
                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">CONNEXION...</MudText>
             }
             else
             {
-                <MudText>CONNEXION</MudText>
+                <MudText>SE CONNECTER</MudText>
             }
         </MudButton>
 
         @if (_showError)
         {
-            <MudAlert Severity="Severity.Error" Dense="true" Class="mt-4">
-                Identifiants incorrects.
+            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mt-4">
+                Identifiants incorrects. Veuillez réessayer.
             </MudAlert>
         }
     </MudForm>
@@ -65,28 +77,30 @@
 
 <style>
     .login-card {
-        max-width: 400px;
+        max-width: 380px;
         width: 100%;
         margin: auto;
-        padding: 40px;
+        padding: 44px 32px;
         background: #FFFFFF;
-        border-radius: 16px;
-        box-shadow: 0 10px 40px rgba(27,94,32,0.2);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(27,94,32,0.25);
+        border: 1px solid #C8E6C9;
     }
 
     .company-text {
-        font-size: 24px;
-        font-weight: 800;
+        font-size: 22px;
+        font-weight: 900;
         color: #1B5E20;
-        letter-spacing: 1px;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
     }
 
     .app-subtitle {
-        font-size: 14px;
-        color: #666;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 2px;
+        font-size: 15px;
+        color: #558B2F;
+        font-weight: 600;
+        display: block;
+        text-align: center;
     }
 </style>
 

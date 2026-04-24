@@ -16,7 +16,7 @@ public class GmaoDbContext : DbContext
     public DbSet<ConsommableUsage> ConsommableUsages { get; set; }
     public DbSet<InterventionRole> InterventionRoles { get; set; }
     public DbSet<MaintenancePreventive> MaintenancePreventives { get; set; }
-    public DbSet<PointageIntervention> PointagesIntervention { get; set; }
+    public DbSet<PointageIntervention> PointageInterventions { get; set; }
     public DbSet<RapportIncident> RapportsIncidents { get; set; }
     public DbSet<DemandeFabrication> DemandesFabrication { get; set; }
     public DbSet<NatureTravail> NaturesTravail { get; set; }
