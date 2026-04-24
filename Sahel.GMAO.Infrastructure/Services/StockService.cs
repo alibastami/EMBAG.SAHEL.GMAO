@@ -39,6 +39,24 @@ public class StockService : IStockService
         await context.SaveChangesAsync();
     }
 
+    public async Task UpdateArticleAsync(ArticlePdr article)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        context.ArticlesPdr.Update(article);
+        await context.SaveChangesAsync();
+    }
+
+    public async Task DeleteArticleAsync(int id)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        var article = await context.ArticlesPdr.FindAsync(id);
+        if (article != null)
+        {
+            context.ArticlesPdr.Remove(article);
+            await context.SaveChangesAsync();
+        }
+    }
+
     public async Task UpdateStockAsync(int articleId, double quantiteVariation)
     {
         using var context = await _factory.CreateDbContextAsync();

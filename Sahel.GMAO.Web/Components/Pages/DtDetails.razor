@@ -7,6 +7,7 @@
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
+@inject AuthenticationStateProvider AuthStateProvider
 @attribute [Authorize]
 
 <MudContainer MaxWidth="MaxWidth.Large" Class="mt-4 pb-8">
@@ -117,20 +118,23 @@
                                     </tbody>
                                 </MudSimpleTable>
                             </MudItem>
-                            <MudItem xs="12" md="4">
-                                <MudPaper Elevation="0" Class="pa-4 rounded-lg d-flex flex-column align-center justify-center border-2 border-dashed border-primary" Style="height: 100%;">
-                                    <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="text-center">COÛT TOTAL DE L'OPÉRATION</MudText>
-                                    <MudText Typo="Typo.h5" Class="font-weight-bold mt-1">@_dt.TotalCoutOperation.ToString("N2") DA</MudText>
-                                    <div class="d-flex gap-4 mt-2">
-                                        <MudTooltip Text="Pièces">
-                                            <MudText Typo="Typo.caption">PDR: @_dt.TotalCoutPieces.ToString("N0") DA</MudText>
-                                        </MudTooltip>
-                                        <MudTooltip Text="Main d'oeuvre">
-                                            <MudText Typo="Typo.caption">MO: @_dt.TotalCoutMainOeuvre.ToString("N0") DA</MudText>
-                                        </MudTooltip>
-                                    </div>
-                                </MudPaper>
-                            </MudItem>
+                            @if (_userRole == "DSI")
+                            {
+                                <MudItem xs="12" md="4">
+                                    <MudPaper Elevation="0" Class="pa-4 rounded-lg d-flex flex-column align-center justify-center border-2 border-dashed border-primary" Style="height: 100%;">
+                                        <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="text-center">COÛT TOTAL DE L'OPÉRATION</MudText>
+                                        <MudText Typo="Typo.h5" Class="font-weight-bold mt-1">@_dt.TotalCoutOperation.ToString("N2") DA</MudText>
+                                        <div class="d-flex gap-4 mt-2">
+                                            <MudTooltip Text="Pièces">
+                                                <MudText Typo="Typo.caption">PDR: @_dt.TotalCoutPieces.ToString("N0") DA</MudText>
+                                            </MudTooltip>
+                                            <MudTooltip Text="Main d'oeuvre">
+                                                <MudText Typo="Typo.caption">MO: @_dt.TotalCoutMainOeuvre.ToString("N0") DA</MudText>
+                                            </MudTooltip>
+                                        </div>
+                                    </MudPaper>
+                                </MudItem>
+                            }
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
@@ -223,17 +227,23 @@
                                                     <MudTh>Nom</MudTh>
                                                     <MudTh>Qualification</MudTh>
                                                     <MudTh>Heures</MudTh>
-                                                    <MudTh>Taux</MudTh>
-                                                    <MudTh>Total</MudTh>
+                                                    @if (_userRole == "DSI")
+                                                    {
+                                                        <MudTh>Taux</MudTh>
+                                                        <MudTh>Total</MudTh>
+                                                    }
                                                 </HeaderContent>
                                                 <RowTemplate>
                                                     <MudTd DataLabel="Nom">@context.Intervenant?.FullName</MudTd>
                                                     <MudTd DataLabel="Qualification">@context.Qualification</MudTd>
                                                     <MudTd DataLabel="Heures">@context.HeuresTravaillees H</MudTd>
-                                                    <MudTd DataLabel="Taux">@context.TauxHoraire.ToString("N0")</MudTd>
-                                                    <MudTd DataLabel="Total">
-                                                        <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@(( (decimal)context.HeuresTravaillees * context.TauxHoraire).ToString("N2")) DA</MudChip>
-                                                    </MudTd>
+                                                    @if (_userRole == "DSI")
+                                                    {
+                                                        <MudTd DataLabel="Taux">@context.TauxHoraire.ToString("N0")</MudTd>
+                                                        <MudTd DataLabel="Total">
+                                                            <MudChip T="string" Color="Color.Primary" Size="Size.Small" Variant="Variant.Text">@(( (decimal)context.HeuresTravaillees * context.TauxHoraire).ToString("N2")) DA</MudChip>
+                                                        </MudTd>
+                                                    }
                                                 </RowTemplate>
                                             </MudTable>
                                         }
@@ -275,8 +285,11 @@
                                 <HeaderContent>
                                     <MudTh>Désignation</MudTh>
                                     <MudTh>Quantité</MudTh>
-                                    <MudTh>P.U (DA)</MudTh>
-                                    <MudTh>Total (DA)</MudTh>
+                                    @if (_userRole == "DSI")
+                                    {
+                                        <MudTh>P.U (DA)</MudTh>
+                                        <MudTh>Total (DA)</MudTh>
+                                    }
                                 </HeaderContent>
                                 <RowTemplate>
                                     <MudTd DataLabel="Désignation">
@@ -284,10 +297,13 @@
                                         <MudText Typo="Typo.caption">@context.ArticlePdr?.Designation</MudText>
                                     </MudTd>
                                     <MudTd DataLabel="Quantité">@context.Quantite @context.ArticlePdr?.Unite</MudTd>
-                                    <MudTd DataLabel="P.U (DA)">@context.PrixUnitaireApplique.ToString("N2")</MudTd>
-                                    <MudTd DataLabel="Total (DA)">
-                                        <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@(((decimal)context.Quantite * context.PrixUnitaireApplique).ToString("N2")) DA</MudChip>
-                                    </MudTd>
+                                    @if (_userRole == "DSI")
+                                    {
+                                        <MudTd DataLabel="P.U (DA)">@context.PrixUnitaireApplique.ToString("N2")</MudTd>
+                                        <MudTd DataLabel="Total (DA)">
+                                            <MudChip T="string" Color="Color.Info" Size="Size.Small" Variant="Variant.Text">@(((decimal)context.Quantite * context.PrixUnitaireApplique).ToString("N2")) DA</MudChip>
+                                        </MudTd>
+                                    }
                                 </RowTemplate>
                             </MudTable>
                         }
@@ -314,9 +330,12 @@
 
     private DemandeTravail? _dt;
     private bool _loading = true;
+    private string _userRole = "";
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userRole = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
         await LoadData();
     }
 

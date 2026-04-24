@@ -1,0 +1,57 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Enums
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-3 mb-n1" />
+            @(IsEdit ? "Modifier le Profil" : "Nouveau Profil de Travail")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Nom du Profil" @bind-Value="Profile.Name" Required="true" RequiredError="Le nom est requis" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudNumericField T="decimal" Label="Taux Horaire (DA/H)" @bind-Value="Profile.HourlyRate" Required="true" Min="0" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="DA" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudSelect T="Specialite" Label="Spécialité" @bind-Value="Profile.Specialite" Variant="Variant.Outlined">
+                        @foreach (Specialite spec in Enum.GetValues(typeof(Specialite)))
+                        {
+                            <MudSelectItem Value="@spec">@spec.ToString()</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Enregistrer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public WorkingProfile Profile { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private MudForm _form = default!;
+    private bool _success;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        _form.Validate();
+        if (_success)
+        {
+            MudDialog.Close(DialogResult.Ok(Profile));
+        }
+    }
+}

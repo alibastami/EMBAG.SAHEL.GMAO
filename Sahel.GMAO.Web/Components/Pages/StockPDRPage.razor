@@ -14,7 +14,8 @@
     <ToolBarContent>
         <MudText Typo="Typo.h6">État de Stock</MudText>
         <MudSpacer />
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Secondary" OnClick="DownloadStockPdf" Class="mr-4">Exporter PDF</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddArticle" Class="mr-4">Ajouter un Article</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Secondary" OnClick="ViewStockPdf" Class="mr-4">Voir État Stock (PDF)</MudButton>
         <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (Code, Désignation...)" Adornment="Adornment.Start" Immediate="true"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
     </ToolBarContent>
@@ -45,6 +46,16 @@
                 @(( (decimal)context.Item.QuantiteEnStock * context.Item.PrixUnitaire ).ToString("N2")) DA
             </CellTemplate>
         </TemplateColumn>
+        <TemplateColumn CellClass="d-flex justify-end">
+            <CellTemplate>
+                <MudTooltip Text="Modifier">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditArticle(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Supprimer">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteArticle(context.Item))" />
+                </MudTooltip>
+            </CellTemplate>
+        </TemplateColumn>
     </Columns>
     <PagerContent>
         <MudDataGridPager T="ArticlePdr" />
@@ -65,12 +76,71 @@
         _articles = await StockService.GetAllAsync();
     }
 
-    private async Task DownloadStockPdf()
+    private async Task OnAddArticle()
+    {
+        var parameters = new DialogParameters<AddEditArticleDialog> { { x => x.Article, new ArticlePdr() }, { x => x.IsEdit, false } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddEditArticleDialog>("Nouveau PDR", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var article = (ArticlePdr)result.Data!;
+            await StockService.CreateArticleAsync(article);
+            Snackbar.Add("Nouvel article ajouté au stock", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OnEditArticle(ArticlePdr article)
+    {
+        // Clone the article for editing
+        var articleClone = new ArticlePdr
+        {
+            Id = article.Id,
+            CodeArticle = article.CodeArticle,
+            Designation = article.Designation,
+            ReferenceConstructeur = article.ReferenceConstructeur,
+            Unite = article.Unite,
+            QuantiteEnStock = article.QuantiteEnStock,
+            SeuilAlerte = article.SeuilAlerte,
+            PrixUnitaire = article.PrixUnitaire
+        };
+
+        var parameters = new DialogParameters<AddEditArticleDialog> { { x => x.Article, articleClone }, { x => x.IsEdit, true } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+        var dialog = await DialogService.ShowAsync<AddEditArticleDialog>("Modifier PDR", parameters, options);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var updatedArticle = (ArticlePdr)result.Data!;
+            await StockService.UpdateArticleAsync(updatedArticle);
+            Snackbar.Add("Article mis à jour", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task OnDeleteArticle(ArticlePdr article)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer l'article '{article.Designation}' ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await StockService.DeleteArticleAsync(article.Id);
+            Snackbar.Add("Article supprimé", Severity.Success);
+            await LoadData();
+        }
+    }
+
+    private async Task ViewStockPdf()
     {
         var pdfBytes = await PdfService.GenerateStockStatePdfAsync(_articles);
-        var fileName = $"STOCK_{DateTime.Now:yyyyMMdd}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
-        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
     }
 
     private Func<ArticlePdr, bool> _quickFilter => x =>

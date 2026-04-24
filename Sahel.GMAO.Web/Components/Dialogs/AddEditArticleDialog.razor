@@ -1,0 +1,62 @@
+@using Sahel.GMAO.Core.Entities
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-3 mb-n1" />
+            @(IsEdit ? "Modifier l'Article" : "Nouvel Article PDR")
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Label="Code Article" @bind-Value="Article.CodeArticle" Required="true" RequiredError="Le code est requis" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="6">
+                    <MudTextField T="string" Label="Référence Constructeur" @bind-Value="Article.ReferenceConstructeur" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudTextField T="string" Label="Désignation" @bind-Value="Article.Designation" Required="true" RequiredError="La désignation est requise" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudTextField T="string" Label="Unité" @bind-Value="Article.Unite" Placeholder="U, L, Kg..." Required="true" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="double" Label="Stock Actuel" @bind-Value="Article.QuantiteEnStock" Min="0" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" md="4">
+                    <MudNumericField T="double" Label="Seuil d'Alerte" @bind-Value="Article.SeuilAlerte" Min="0" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudNumericField T="decimal" Label="Prix Unitaire (DA)" @bind-Value="Article.PrixUnitaire" Required="true" Min="0" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentText="DA" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Enregistrer</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public ArticlePdr Article { get; set; } = new();
+    [Parameter] public bool IsEdit { get; set; }
+
+    private MudForm _form = default!;
+    private bool _success;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Submit()
+    {
+        _form.Validate();
+        if (_success)
+        {
+            MudDialog.Close(DialogResult.Ok(Article));
+        }
+    }
+}

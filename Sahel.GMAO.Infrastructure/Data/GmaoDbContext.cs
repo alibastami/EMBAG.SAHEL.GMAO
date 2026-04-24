@@ -28,6 +28,7 @@ public class GmaoDbContext : DbContext
     public DbSet<PointageMachineFabrication> PointagesMachinesFabrication { get; set; }
     public DbSet<AppNotification> Notifications { get; set; }
     public DbSet<InterventionLog> InterventionLogs { get; set; }
+    public DbSet<WorkingProfile> WorkingProfiles { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,17 @@ public class GmaoDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Username).IsUnique();
+            
+            entity.HasOne(u => u.WorkingProfile)
+                .WithMany(p => p.Users)
+                .HasForeignKey(u => u.WorkingProfileId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<WorkingProfile>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.HourlyRate).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<Equipement>(entity =>

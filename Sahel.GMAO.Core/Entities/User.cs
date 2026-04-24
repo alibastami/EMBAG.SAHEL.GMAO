@@ -20,6 +20,9 @@ public class User
     public string Role { get; set; } = string.Empty; // DSI, Mécanicien, Électricien
     
     public Specialite? Specialite { get; set; }
+    
+    public int? WorkingProfileId { get; set; }
+    public virtual WorkingProfile? WorkingProfile { get; set; }
 
     public string Position { get; set; } = string.Empty;
 

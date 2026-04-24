@@ -47,10 +47,13 @@
         <TemplateColumn CellClass="d-flex justify-end">
             <CellTemplate>
                 <MudTooltip Text="Voir détails">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))" />
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Description" Color="Color.Primary" OnClick="@(() => ViewDetails(context.Item))" />
                 </MudTooltip>
-                <MudTooltip Text="Imprimer DT (PDF)">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
+                <MudTooltip Text="Voir PDF (Nouvel onglet)">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Visibility" Color="Color.Secondary" OnClick="@(() => ViewPdf(context.Item))" />
+                </MudTooltip>
+                <MudTooltip Text="Télécharger PDF">
+                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.FileDownload" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
                 </MudTooltip>
                 @if (context.Item.Statut == StatutDT.EnAttente && _userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI)
                 {
@@ -140,5 +143,15 @@
         var fileName = $"{fullDt.NumeroDT}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
         await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+    }
+
+    private async Task ViewPdf(DemandeTravail dt)
+    {
+        var fullDt = await DtService.GetByIdAsync(dt.Id);
+        if (fullDt == null) return;
+
+        var pdfBytes = await PdfService.GenerateDtPdfAsync(fullDt);
+        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+        await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
     }
 }

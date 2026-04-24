@@ -226,13 +226,20 @@ public class DtService : IDtService
         
         if (dt != null)
         {
+            if (tauxHoraire == null)
+            {
+                // Try to get from user profile
+                var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == userId);
+                tauxHoraire = user?.WorkingProfile?.HourlyRate ?? 500;
+            }
+
             var role = new InterventionRole
             {
                 DemandeTravailId = dtId,
                 IntervenantId = userId,
                 HeuresTravaillees = heures,
                 Qualification = qualification,
-                TauxHoraire = tauxHoraire ?? 500 // Default to 500 if not provided
+                TauxHoraire = tauxHoraire.Value
             };
 
             context.InterventionRoles.Add(role);
@@ -272,12 +279,15 @@ public class DtService : IDtService
             var role = dt.Intervenants.FirstOrDefault(r => r.IntervenantId == log.IntervenantId);
             if (role == null)
             {
+                var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == log.IntervenantId);
+                var rate = user?.WorkingProfile?.HourlyRate ?? 500;
+
                 role = new InterventionRole
                 {
                     DemandeTravailId = dt.Id,
                     IntervenantId = log.IntervenantId,
-                    Qualification = "Intervenant",
-                    TauxHoraire = 500 // Default
+                    Qualification = user?.Position ?? "Intervenant",
+                    TauxHoraire = rate
                 };
                 context.InterventionRoles.Add(role);
                 dt.Intervenants.Add(role);

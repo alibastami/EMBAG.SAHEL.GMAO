@@ -3,6 +3,7 @@
 @using Sahel.GMAO.Core.Interfaces
 @using Sahel.GMAO.Web.Components.Dialogs
 @inject INatureTravailService NatureService
+@inject IWorkingProfileService ProfileService
 @inject IBackupService BackupService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
@@ -37,6 +38,36 @@
         </MudDataGrid>
     </MudTabPanel>
     
+    <MudTabPanel Text="Profils de Travail" Icon="@Icons.Material.Filled.Badge">
+        <MudDataGrid Items="@_profiles" Hover="true" Loading="@_loadingProfiles">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddProfile" Class="mr-4">
+                    Ajouter un Profil
+                </MudButton>
+                <MudSpacer />
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Name" Title="Nom du Profil" />
+                <PropertyColumn Property="x => x.Specialite" Title="Spécialité" />
+                <PropertyColumn Property="x => x.HourlyRate" Title="Taux Horaire (DA/H)">
+                    <CellTemplate>
+                        @context.Item.HourlyRate.ToString("N2") DA
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn CellClass="d-flex justify-end">
+                    <CellTemplate>
+                        <MudTooltip Text="Modifier">
+                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditProfile(context.Item))" />
+                        </MudTooltip>
+                        <MudTooltip Text="Supprimer">
+                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteProfile(context.Item))" />
+                        </MudTooltip>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+
     <MudTabPanel Text="Général" Icon="@Icons.Material.Filled.Settings">
         <MudText Typo="Typo.h6" Class="mb-4">Informations sur l'application</MudText>
         <MudPaper Class="pa-4">
@@ -149,6 +180,8 @@
 </MudTabs>
 
 @code {
+    private List<WorkingProfile> _profiles = new();
+    private bool _loadingProfiles = true;
     private List<NatureTravail> _natures = new();
     private bool _loadingNatures = true;
     private bool _isBackingUp = false;
@@ -159,6 +192,77 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadNatures();
+        await LoadProfiles();
+    }
+
+    private async Task LoadProfiles()
+    {
+        _loadingProfiles = true;
+        _profiles = await ProfileService.GetAllAsync();
+        _loadingProfiles = false;
+    }
+
+    private async Task OnAddProfile()
+    {
+        var parameters = new DialogParameters<WorkingProfileDialog>
+        {
+            { x => x.Profile, new WorkingProfile() },
+            { x => x.IsEdit, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Nouveau Profil", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var profile = (WorkingProfile)result.Data!;
+            await ProfileService.CreateAsync(profile);
+            Snackbar.Add("Profil de travail créé", Severity.Success);
+            await LoadProfiles();
+        }
+    }
+
+    private async Task OnEditProfile(WorkingProfile profile)
+    {
+        var profileClone = new WorkingProfile
+        {
+            Id = profile.Id,
+            Name = profile.Name,
+            HourlyRate = profile.HourlyRate,
+            Specialite = profile.Specialite
+        };
+
+        var parameters = new DialogParameters<WorkingProfileDialog>
+        {
+            { x => x.Profile, profileClone },
+            { x => x.IsEdit, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Modifier le Profil", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var updatedProfile = (WorkingProfile)result.Data!;
+            await ProfileService.UpdateAsync(updatedProfile);
+            Snackbar.Add("Profil de travail mis à jour", Severity.Success);
+            await LoadProfiles();
+        }
+    }
+
+    private async Task OnDeleteProfile(WorkingProfile profile)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer le profil '{profile.Name}' ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await ProfileService.DeleteAsync(profile.Id);
+            Snackbar.Add("Profil de travail supprimé", Severity.Success);
+            await LoadProfiles();
+        }
     }
 
     private async Task LoadNatures()

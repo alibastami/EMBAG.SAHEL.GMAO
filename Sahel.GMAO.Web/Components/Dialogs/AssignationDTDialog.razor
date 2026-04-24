@@ -17,10 +17,10 @@
         <MudText Class="mb-4">Assigner un technicien à la demande <b>@Dt.NumeroDT</b> (@Dt.Equipement.Code)</MudText>
         
         <MudForm @ref="_form" @bind-IsValid="@_success">
-            <MudSelect T="User" Label="Sélectionner le technicien" @bind-Value="_selectedTechnicien" Required="true" RequiredError="Veuillez choisir un technicien">
+            <MudSelect T="User" Label="Sélectionner le technicien" Value="_selectedTechnicien" ValueChanged="OnTechnicianChanged" Required="true" RequiredError="Veuillez choisir un technicien" Variant="Variant.Outlined">
                 @foreach (var tech in _techniciens)
                 {
-                    <MudSelectItem Value="@tech">@tech.FullName (@tech.Role)</MudSelectItem>
+                    <MudSelectItem Value="@tech">@tech.FullName (@(tech.WorkingProfile?.Name ?? tech.Role))</MudSelectItem>
                 }
             </MudSelect>
 
@@ -47,7 +47,18 @@
     protected override async Task OnInitializedAsync()
     {
         var allUsers = await AuthService.GetAllUsersAsync();
+        // Ensure we have profiles for rates
         _techniciens = allUsers.Where(u => u.Role == AppRoles.Executant || u.Role == AppRoles.DSI).ToList();
+    }
+
+    private void OnTechnicianChanged(User user)
+    {
+        _selectedTechnicien = user;
+        if (user != null)
+        {
+            // Set rate from profile if available
+            _tauxHoraire = user.WorkingProfile?.HourlyRate ?? 500;
+        }
     }
 
     private void Cancel() => MudDialog.Cancel();

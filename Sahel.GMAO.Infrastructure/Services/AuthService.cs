@@ -31,7 +31,7 @@ public class AuthService : IAuthService
     public async Task<List<User>> GetAllUsersAsync()
     {
         using var context = await _factory.CreateDbContextAsync();
-        return await context.Users.ToListAsync();
+        return await context.Users.Include(u => u.WorkingProfile).ToListAsync();
     }
 
     public async Task<User?> GetUserByIdAsync(int id)
@@ -64,6 +64,8 @@ public class AuthService : IAuthService
             existing.FullName = user.FullName;
             existing.Role = user.Role;
             existing.Position = user.Position;
+            existing.Specialite = user.Specialite;
+            existing.WorkingProfileId = user.WorkingProfileId;
             existing.CanManageUsers = user.CanManageUsers;
             existing.CanViewAudit = user.CanViewAudit;
             existing.CanEditInventory = user.CanEditInventory;

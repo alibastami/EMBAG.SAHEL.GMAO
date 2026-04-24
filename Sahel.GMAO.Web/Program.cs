@@ -57,6 +57,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEquipementService, EquipementService>();
 builder.Services.AddScoped<IStockService, StockService>();
+builder.Services.AddScoped<IWorkingProfileService, WorkingProfileService>();
 builder.Services.AddScoped<IDtService, DtService>();
 builder.Services.AddScoped<IFabricationService, FabricationService>();
 builder.Services.AddScoped<IMaintenanceService, MaintenanceService>();
