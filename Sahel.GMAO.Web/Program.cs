@@ -41,11 +41,16 @@ builder.Services.AddDbContextFactory<GmaoDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // Authentication (Synced with DRH)
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddAuthentication("Cookies")
     .AddCookie("Cookies", options =>
     {
         options.LoginPath = "/login";
         options.ExpireTimeSpan = TimeSpan.FromHours(8);
+        options.SlidingExpiration = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     });
 
 builder.Services.AddCascadingAuthenticationState();
@@ -54,6 +59,7 @@ builder.Services.AddScoped<CustomAuthenticationStateProvider>(sp => (CustomAuthe
 builder.Services.AddAuthorization();
 
 // Application Services
+builder.Services.AddControllers();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IEquipementService, EquipementService>();
 builder.Services.AddScoped<IStockService, StockService>();
@@ -81,6 +87,7 @@ app.UseAntiforgery();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

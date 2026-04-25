@@ -68,6 +68,6 @@
     {
         var provider = (Sahel.GMAO.Web.Auth.CustomAuthenticationStateProvider)AuthStateProvider;
         await provider.MarkUserAsLoggedOut();
-        NavManager.NavigateTo("/login", true);
+        NavManager.NavigateTo("/Account/Logout", true);
     }
 }

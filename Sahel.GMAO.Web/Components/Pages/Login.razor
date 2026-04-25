@@ -8,6 +8,7 @@
 @inject CustomAuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
 @inject ISnackbar Snackbar
+@inject IJSRuntime JS
 
 <div class="login-card">
     @* Logo Section *@
@@ -23,6 +24,12 @@
     <div class="text-center mb-8">
         <span class="app-subtitle">SAHEL GMAO</span>
     </div>
+
+    @* Hidden Form for Cookie Authentication *@
+    <form id="accountLoginForm" action="/Account/Login" method="post" style="display:none;">
+        <input type="hidden" name="username" value="@_username" />
+        <input type="hidden" name="password" value="@_password" />
+    </form>
 
     @* Form *@
     <MudForm @ref="_form" @bind-IsValid="@_success">
@@ -66,7 +73,7 @@
             }
         </MudButton>
 
-        @if (_showError)
+        @if (_showError || !string.IsNullOrEmpty(ErrorParam))
         {
             <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mt-4">
                 Identifiants incorrects. Veuillez réessayer.
@@ -112,6 +119,10 @@
     private string _username = "";
     private string _password = "";
 
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "error")]
+    public string? ErrorParam { get; set; }
+
     private InputType _passwordType = InputType.Password;
     private string _passwordIcon = Icons.Material.Filled.VisibilityOff;
 
@@ -138,16 +149,17 @@
         _loading = true;
         try
         {
+            // 1. Authenticate against database first
             var user = await AuthService.AuthenticateAsync(_username, _password);
             if (user != null)
             {
+                // 2. Save session to local storage for interactive circuit persistence
                 await AuthStateProvider.MarkUserAsAuthenticated(user);
                 
-                // Redirect based on role
-                if (user.Role == AppRoles.DSI)
-                    NavManager.NavigateTo("/");
-                else
-                    NavManager.NavigateTo("/"); // Both start at dashboard/dashboard for now
+                // 3. TRIGGER REAL FORM POST to set the authentication cookie
+                // This is the "bullet-proof" part: it makes a real HTTP request that issues a cookie.
+                await Task.Delay(100); // Give state a moment to sync
+                await JS.InvokeVoidAsync("eval", "document.getElementById('accountLoginForm').submit()");
             }
             else
             {

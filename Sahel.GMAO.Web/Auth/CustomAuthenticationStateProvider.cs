@@ -10,13 +10,15 @@ namespace Sahel.GMAO.Web.Auth;
 public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 {
     private readonly ProtectedLocalStorage _localStorage;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private ClaimsPrincipal _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
-    private const string UserSessionKey = "UserSession"; // Standardized with DRH
+    private const string UserSessionKey = "UserSession";
     private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1, 1);
 
-    public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage)
+    public CustomAuthenticationStateProvider(ProtectedLocalStorage localStorage, IHttpContextAccessor httpContextAccessor)
     {
         _localStorage = localStorage;
+        _httpContextAccessor = httpContextAccessor;
     }
 
     public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -24,51 +26,45 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
         await _semaphore.WaitAsync();
         try
         {
+            // 1. If already authenticated in memory (current circuit), return it
             if (_currentUser.Identity?.IsAuthenticated == true)
             {
                 return new AuthenticationState(_currentUser);
             }
 
-            Serilog.Log.Information("[Auth] Attempting session recovery from local storage...");
+            // 2. Try to recover from HttpContext (Cookie)
+            // This is populated during the initial request that started the circuit
+            var httpUser = _httpContextAccessor.HttpContext?.User;
+            if (httpUser?.Identity?.IsAuthenticated == true)
+            {
+                _currentUser = httpUser;
+                Serilog.Log.Information("[Auth] Session recovered from HttpContext (Cookie) for: {Username}", _currentUser.Identity.Name);
+                return new AuthenticationState(_currentUser);
+            }
 
-            // Retry loop (handles late JS Interop)
-            // Increased to 25 retries with 200ms delay = 5 seconds of resilience
-            for (int i = 0; i < 25; i++)
+            // 3. Fallback: Try to recover from local storage (handles scenarios where HttpContext is lost)
+            Serilog.Log.Information("[Auth] HttpContext anonymous. Attempting session recovery from local storage...");
+
+            for (int i = 0; i < 5; i++) // Reduced retries since HttpContext handles most cases
             {
                 try
                 {
                     var result = await _localStorage.GetAsync<UserSession>(UserSessionKey);
                     
-                    if (result.Success)
+                    if (result.Success && result.Value != null)
                     {
-                        if (result.Value != null)
+                        var session = result.Value;
+                        if (session.Expiry > DateTime.UtcNow)
                         {
-                            var session = result.Value;
-                            if (session.Expiry > DateTime.UtcNow)
-                            {
-                                _currentUser = CreatePrincipalFromSession(session);
-                                Serilog.Log.Information("[Auth] SUCCESS: Session recovered on attempt {Attempt} for user: {Username}", i + 1, _currentUser.Identity?.Name);
-                                _ = UpdateSessionExpiry(session);
-                                return new AuthenticationState(_currentUser);
-                            }
-                            else
-                            {
-                                Serilog.Log.Warning("[Auth] Session found but expired at {Expiry}", session.Expiry);
-                            }
+                            _currentUser = CreatePrincipalFromSession(session);
+                            Serilog.Log.Information("[Auth] Session recovered from LocalStorage for: {Username}", _currentUser.Identity?.Name);
+                            _ = UpdateSessionExpiry(session);
+                            return new AuthenticationState(_currentUser);
                         }
-                        else
-                        {
-                            Serilog.Log.Debug("[Auth] No session key found in local storage (attempt {Attempt})", i + 1);
-                        }
-                        
-                        // If we got a successful response (even null), and it's not the first few attempts, 
-                        // it's likely there truly is no session.
-                        if (i > 5) break; 
                     }
                 }
-                catch (Exception ex)
+                catch 
                 {
-                    if (i == 24) Serilog.Log.Error("[Auth] FATAL: Session recovery failed after 25 retries. JS Interop error: {Message}", ex.Message);
                     await Task.Delay(200);
                 }
             }
