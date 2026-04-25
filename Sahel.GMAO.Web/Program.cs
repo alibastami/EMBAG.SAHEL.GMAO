@@ -9,6 +9,7 @@ using Sahel.GMAO.Web.Components;
 using Sahel.GMAO.Web.Hubs;
 using Serilog;
 
+Console.WriteLine(">>> SAHEL GMAO: Initializing process...");
 try
 {
     var builder = WebApplication.CreateBuilder(args);

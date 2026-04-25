@@ -23,6 +23,7 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Restore failed!"; exit $LASTEXITCODE }
 dotnet build $ProjectPath -c Release -r win-x64 --no-restore
 if ($LASTEXITCODE -ne 0) { Write-Error "Build failed!"; exit $LASTEXITCODE }
 
+<#
 # 3. Obfuscate
 Write-Host "Applying obfuscation..." -ForegroundColor Cyan
 if (-not (Test-Path $ObfuscarExe)) {
@@ -48,6 +49,7 @@ if (Test-Path "$BuildDir\Obfuscated") {
     Write-Error "Obfuscated directory not found at $BuildDir\Obfuscated."
     exit 1
 }
+#>
 
 # 5. Publish (Self-contained standalone folder with obfuscated DLLs)
 Write-Host "Publishing as self-contained standalone folder..." -ForegroundColor Cyan
