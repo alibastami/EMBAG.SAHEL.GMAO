@@ -61,12 +61,13 @@ if (Test-Path $PublishDir) {
     Write-Host "Packaging folder to $FinalDir..." -ForegroundColor Cyan
     Copy-Item -Path $PublishDir -Destination $FinalDir -Recurse -Force
 
-    # Copy additional resources if any (images, etc are usually in wwwroot which is handled by publish)
+    # Ensure Logs folder exists
+    New-Item -ItemType Directory -Path (Join-Path $FinalDir "Logs") -Force | Out-Null
     
     Write-Host "`n====================================================" -ForegroundColor White
     Write-Host "SUCCESS: Standalone GMAO app created!" -ForegroundColor Green
     Write-Host "Location: $FinalDir" -ForegroundColor White
-    Write-Host "To run: Launch $($ProjectName).exe in that folder." -ForegroundColor White
+    Write-Host "To run: Launch Sahel.GMAO.exe in that folder." -ForegroundColor White
     Write-Host "====================================================`n" -ForegroundColor White
 } else {
     Write-Error "Publish directory not found at $PublishDir"

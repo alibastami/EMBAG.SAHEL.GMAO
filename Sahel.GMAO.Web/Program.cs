@@ -164,6 +164,9 @@ using (var scope = app.Services.CreateScope())
 }
 catch (Exception ex)
 {
+    var crashLog = $"[FATAL ERROR {DateTime.Now}]\n{ex.ToString()}\n\nInner Exception: {ex.InnerException?.ToString()}";
+    File.WriteAllText("crash_log.txt", crashLog);
+    
     Log.Fatal(ex, "Application terminated unexpectedly");
     
     Console.ForegroundColor = ConsoleColor.Red;
@@ -171,9 +174,14 @@ catch (Exception ex)
     Console.WriteLine("FATAL ERROR - APPLICATION CRASHED");
     Console.WriteLine("====================================================");
     Console.WriteLine(ex.Message);
+    Console.WriteLine("\nDetails saved to crash_log.txt");
     Console.WriteLine("\nAppuyez sur une touche pour fermer...");
     Console.ForegroundColor = ConsoleColor.Gray;
-    Console.ReadKey();
+    
+    if (!Console.IsInputRedirected)
+    {
+        Console.ReadKey();
+    }
 }
 finally
 {
