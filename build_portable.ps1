@@ -11,19 +11,19 @@ $PublishDir = Join-Path $BuildDir "publish"
 $ObfuscarExe = "$env:USERPROFILE\.nuget\packages\obfuscar\2.2.50\tools\Obfuscar.Console.exe"
 
 # Cleanup
-Write-Host "Cleaning up Dist folder..." -ForegroundColor Cyan
+Write-Host "Cleaning up Dist and Build folders..." -ForegroundColor Cyan
 if (Test-Path $OutDir) { Remove-Item -Recurse -Force $OutDir }
+if (Test-Path $PublishDir) { Remove-Item -Recurse -Force $PublishDir }
 New-Item -ItemType Directory -Path $OutDir | Out-Null
 
 # 2. Restore and Build with specific RID to ensure consistency
-Write-Host "Restoring and Building for win-x64..." -ForegroundColor Cyan
+Write-Host "Restoring and Building (Self-Contained) for win-x64..." -ForegroundColor Cyan
 dotnet restore $ProjectPath -r win-x64
 if ($LASTEXITCODE -ne 0) { Write-Error "Restore failed!"; exit $LASTEXITCODE }
 
-dotnet build $ProjectPath -c Release -r win-x64 --no-restore
+dotnet build $ProjectPath -c Release -r win-x64 --no-restore --self-contained true
 if ($LASTEXITCODE -ne 0) { Write-Error "Build failed!"; exit $LASTEXITCODE }
 
-<#
 # 3. Obfuscate
 Write-Host "Applying obfuscation..." -ForegroundColor Cyan
 if (-not (Test-Path $ObfuscarExe)) {
@@ -49,7 +49,6 @@ if (Test-Path "$BuildDir\Obfuscated") {
     Write-Error "Obfuscated directory not found at $BuildDir\Obfuscated."
     exit 1
 }
-#>
 
 # 5. Publish (Self-contained standalone folder with obfuscated DLLs)
 Write-Host "Publishing as self-contained standalone folder..." -ForegroundColor Cyan
@@ -69,9 +68,10 @@ if (Test-Path $PublishDir) {
     Write-Host "`n====================================================" -ForegroundColor White
     Write-Host "SUCCESS: Standalone GMAO app created!" -ForegroundColor Green
     Write-Host "Location: $FinalDir" -ForegroundColor White
-    Write-Host "To run: Launch Sahel.GMAO.Web.exe in that folder." -ForegroundColor White
+    Write-Host "To run: Launch Sahel.GMAO.exe in that folder." -ForegroundColor White
     Write-Host "====================================================`n" -ForegroundColor White
-} else {
+}
+ else {
     Write-Error "Publish directory not found at $PublishDir"
     exit 1
 }

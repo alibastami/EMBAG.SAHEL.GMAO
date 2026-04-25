@@ -12,7 +12,15 @@ using Serilog;
 Console.WriteLine(">>> SAHEL GMAO: Initializing process...");
 try
 {
-    var builder = WebApplication.CreateBuilder(args);
+    var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+    {
+        Args = args,
+        ContentRootPath = AppContext.BaseDirectory
+    });
+
+    builder.Configuration.SetBasePath(AppContext.BaseDirectory)
+        .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+        .AddEnvironmentVariables();
 
 // Configure Serilog (Synced with DRH)
 Log.Logger = new LoggerConfiguration()
