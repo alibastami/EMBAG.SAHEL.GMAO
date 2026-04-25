@@ -17,7 +17,7 @@
   <AssemblySearchPath path="C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\8.0.26\ref\net8.0" />
 
   <!-- Explicitly use $(InPath) to avoid ambiguity -->
-  <Module file="$(InPath)\Sahel.GMAO.dll">
+  <Module file="$(InPath)\Sahel.GMAO.Web.dll">
     <SkipType name="*" />
   </Module>
   

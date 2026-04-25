@@ -69,7 +69,7 @@ if (Test-Path $PublishDir) {
     Write-Host "`n====================================================" -ForegroundColor White
     Write-Host "SUCCESS: Standalone GMAO app created!" -ForegroundColor Green
     Write-Host "Location: $FinalDir" -ForegroundColor White
-    Write-Host "To run: Launch Sahel.GMAO.exe in that folder." -ForegroundColor White
+    Write-Host "To run: Launch Sahel.GMAO.Web.exe in that folder." -ForegroundColor White
     Write-Host "====================================================`n" -ForegroundColor White
 } else {
     Write-Error "Publish directory not found at $PublishDir"
