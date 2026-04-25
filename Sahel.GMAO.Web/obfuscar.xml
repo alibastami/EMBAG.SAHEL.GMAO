@@ -1,0 +1,32 @@
+<?xml version='1.0'?>
+<Obfuscator>
+  <Var name="InPath" value=".\bin\Release\net8.0\win-x64" />
+  <Var name="OutPath" value=".\bin\Release\net8.0\win-x64\Obfuscated" />
+  <Var name="KeepPublicApi" value="false" />
+  <Var name="HidePrivateApi" value="true" />
+  <Var name="RenameProperties" value="true" />
+  <Var name="RenameEvents" value="true" />
+  <Var name="RenameFields" value="true" />
+  <Var name="UseUnicodeNames" value="true" />
+  <Var name="HideStrings" value="true" />
+  <Var name="Optimize" value="true" />
+  <Var name="SuppressStatistics" value="true" />
+
+  <!-- Explicitly use $(InPath) to avoid ambiguity -->
+  <Module file="$(InPath)\Sahel.GMAO.Web.dll">
+    <!-- Skip renaming for everything in the Web project to ensure ASP.NET/Blazor stability -->
+    <SkipType name="*" />
+  </Module>
+  
+  <Module file="$(InPath)\Sahel.GMAO.Core.dll">
+    <SkipNamespace name="Sahel.GMAO.Core.Entities" />
+    <SkipNamespace name="Sahel.GMAO.Core.Models" />
+    <SkipNamespace name="Sahel.GMAO.Core.Constants" />
+    <SkipNamespace name="Sahel.GMAO.Core.Interfaces" />
+  </Module>
+  
+  <Module file="$(InPath)\Sahel.GMAO.Infrastructure.dll">
+    <SkipNamespace name="Sahel.GMAO.Infrastructure.Data" />
+    <SkipNamespace name="Sahel.GMAO.Infrastructure.Services" />
+  </Module>
+</Obfuscator>
