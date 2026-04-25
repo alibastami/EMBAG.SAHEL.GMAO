@@ -11,6 +11,10 @@
   <Var name="HideStrings" value="true" />
   <Var name="Optimize" value="true" />
   <Var name="SuppressStatistics" value="true" />
+  
+  <!-- Fix for .NET 8 dependency resolution -->
+  <AssemblySearchPath path="C:\Program Files\dotnet\packs\Microsoft.AspNetCore.App.Ref\8.0.26\ref\net8.0" />
+  <AssemblySearchPath path="C:\Program Files\dotnet\packs\Microsoft.NETCore.App.Ref\8.0.26\ref\net8.0" />
 
   <!-- Explicitly use $(InPath) to avoid ambiguity -->
   <Module file="$(InPath)\Sahel.GMAO.Web.dll">
