@@ -137,9 +137,16 @@
 
         if (result == true)
         {
-            await AuthService.DeleteUserAsync(user.Id);
-            Snackbar.Add("Utilisateur supprimé", Severity.Success);
-            await LoadData();
+            try
+            {
+                await AuthService.DeleteUserAsync(user.Id);
+                Snackbar.Add("Utilisateur supprimé", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur lors de la suppression : {ex.Message}", Severity.Error);
+            }
         }
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Sahel.GMAO.Core.Constants;
 using Sahel.GMAO.Core.Entities;
 using Sahel.GMAO.Core.Enums;
+using System.Text;
 using Sahel.GMAO.Infrastructure.Data;
 
 namespace Sahel.GMAO.Infrastructure.Data;
@@ -133,14 +134,24 @@ public static class DbInitializer
         }
         await context.SaveChangesAsync();
 
-        // 2. Seed equipments
-        if (!await context.Equipements.AnyAsync())
+        // 1.7 Seed Settings
+        if (!await context.AppSettings.AnyAsync(s => s.Key == "EquipmentFilePath"))
         {
-            context.Equipements.AddRange(
-                new Equipement { Code = "OFF-001", Designation = "Presse OFFSET HEIDELBERG", Section = "OFFSET", Marque = "Heidelberg" },
-                new Equipement { Code = "FAC-001", Designation = "Plieuse automatique", Section = "FACONNAGE", Marque = "Stahl" },
-                new Equipement { Code = "CTP-001", Designation = "Machine CTP", Section = "PRE-PRESSE", Marque = "Agfa" }
-            );
+            context.AppSettings.Add(new AppSetting 
+            { 
+                Key = "EquipmentFilePath", 
+                Value = @"D:\Embag-Sahel-Workspace\Sahel.GMAO\listmachine.txt" 
+            });
+            await context.SaveChangesAsync();
+        }
+
+        // 1.8 Cleanup dummies if requested (one-time logic)
+        await CleanupDummyEquipmentsAsync(context);
+
+        // 2. Seed equipments from listmachine.txt
+        if (!await context.Equipements.AnyAsync() || (await context.Equipements.CountAsync() <= 3 && await context.Equipements.AnyAsync(e => e.Code == "OFF-001")))
+        {
+            await SeedEquipmentsFromFileAsync(context);
         }
 
         // 3. Seed PDR Articles
@@ -154,5 +165,165 @@ public static class DbInitializer
         }
 
         await context.SaveChangesAsync();
+    }
+
+    private static async Task CleanupDummyEquipmentsAsync(GmaoDbContext context)
+    {
+        var dummyCodes = new[] { "OFF-001", "FAC-001", "CTP-001" };
+        var dummies = await context.Equipements
+            .Where(e => dummyCodes.Contains(e.Code))
+            .ToListAsync();
+
+        if (dummies.Any())
+        {
+            Console.WriteLine(">>> GMAO: Cleaning up dummy machines and their history...");
+            var dummyIds = dummies.Select(d => d.Id).ToList();
+
+            // Delete associated records manually to avoid FK conflicts
+            // 1. Fabrication
+            var fabrications = await context.DemandesFabrication.Where(f => dummyIds.Contains(f.EquipementId)).ToListAsync();
+            context.DemandesFabrication.RemoveRange(fabrications);
+
+            // 2. DTs
+            var dts = await context.DemandesTravail.Where(d => dummyIds.Contains(d.EquipementId)).ToListAsync();
+            context.DemandesTravail.RemoveRange(dts);
+
+            // 3. Preventives
+            var preventives = await context.MaintenancePreventives.Where(m => dummyIds.Contains(m.EquipementId)).ToListAsync();
+            context.MaintenancePreventives.RemoveRange(preventives);
+
+            // 4. Incidents
+            var incidents = await context.RapportsIncidents.Where(r => dummyIds.Contains(r.EquipementId)).ToListAsync();
+            context.RapportsIncidents.RemoveRange(incidents);
+
+            // 5. Consignations
+            var consignations = await context.BonsDeConsignation.Where(b => dummyIds.Contains(b.EquipementId)).ToListAsync();
+            context.BonsDeConsignation.RemoveRange(consignations);
+
+            // 6. Entretien
+            var entretiens = await context.FichesEntretienPreventif.Where(f => dummyIds.Contains(f.EquipementId)).ToListAsync();
+            context.FichesEntretienPreventif.RemoveRange(entretiens);
+
+            await context.SaveChangesAsync();
+
+            // Finally delete the machines
+            context.Equipements.RemoveRange(dummies);
+            await context.SaveChangesAsync();
+            Console.WriteLine(">>> GMAO: Dummy cleanup complete.");
+        }
+    }
+
+    private static async Task SeedEquipmentsFromFileAsync(GmaoDbContext context)
+    {
+        try
+        {
+            var setting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "EquipmentFilePath");
+            string? configuredPath = setting?.Value;
+
+            // Try to find listmachine.txt in several locations if configured path fails
+            string[] possiblePaths = { 
+                configuredPath ?? "",
+                "listmachine.txt", 
+                "../listmachine.txt", 
+                "../../listmachine.txt",
+                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "listmachine.txt"),
+                Path.Combine(Directory.GetCurrentDirectory(), "listmachine.txt")
+            };
+ 
+            string? filePath = possiblePaths.Where(p => !string.IsNullOrEmpty(p)).FirstOrDefault(File.Exists);
+
+            if (filePath == null)
+            {
+                if (await context.Equipements.AnyAsync()) return; // Don't add fallbacks if we already have some
+
+                // Fallback to manual seeding if file not found
+                context.Equipements.AddRange(
+                    new Equipement { Code = "OFF-001", Designation = "Presse OFFSET HEIDELBERG", Section = "OFFSET", Marque = "Heidelberg", IsActive = true },
+                    new Equipement { Code = "FAC-001", Designation = "Plieuse automatique", Section = "FACONNAGE", Marque = "Stahl", IsActive = true },
+                    new Equipement { Code = "CTP-001", Designation = "Machine CTP", Section = "PRE-PRESSE", Marque = "Agfa", IsActive = true }
+                );
+                await context.SaveChangesAsync();
+                return;
+            }
+
+            Console.WriteLine($">>> GMAO: Loading machines from {filePath}...");
+            
+            // Handle UTF-16LE specifically
+            var lines = await File.ReadAllLinesAsync(filePath, System.Text.Encoding.Unicode);
+            if (lines.Length <= 1) 
+            {
+                // Try UTF-8 if Unicode yielded nothing
+                lines = await File.ReadAllLinesAsync(filePath, System.Text.Encoding.UTF8);
+            }
+
+            string currentSection = "GÉNÉRAL";
+            var equipments = new List<Equipement>();
+            var existingCodes = await context.Equipements.Select(e => e.Code).ToListAsync();
+
+            foreach (var line in lines)
+            {
+                var trimmedLine = line.Trim();
+                if (string.IsNullOrEmpty(trimmedLine)) continue;
+
+                // Detect Section (Keywords)
+                if (trimmedLine.StartsWith("ATELIER", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("DEPARTEMENT", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("SERVICE", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("MAGASIN", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("PARK", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("BLOC", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("STATION", StringComparison.OrdinalIgnoreCase) || 
+                    trimmedLine.StartsWith("MICRO", StringComparison.OrdinalIgnoreCase) ||
+                    trimmedLine.StartsWith("FLEXOGRAPHIE", StringComparison.OrdinalIgnoreCase))
+                {
+                    currentSection = trimmedLine;
+                    continue;
+                }
+
+                // Detect Machine
+                string code = "";
+                string designation = "";
+
+                var parts = trimmedLine.Split(' ', 2);
+                if (parts.Length > 1 && int.TryParse(parts[0], out _))
+                {
+                    code = parts[0];
+                    designation = parts[1];
+                }
+                else if (int.TryParse(trimmedLine, out _))
+                {
+                    code = trimmedLine;
+                    designation = "Machine " + code;
+                }
+                else
+                {
+                    designation = trimmedLine;
+                    code = designation.Length > 5 ? designation.Substring(0, 5).ToUpper() : designation.ToUpper();
+                    code = code.Replace(" ", "-");
+                }
+
+                // Avoid duplicates
+                if (!existingCodes.Contains(code) && !equipments.Any(e => e.Code == code))
+                {
+                    equipments.Add(new Equipement
+                    {
+                        Code = code,
+                        Designation = designation,
+                        Section = currentSection,
+                        IsActive = true
+                    });
+                }
+            }
+
+            if (equipments.Any())
+            {
+                context.Equipements.AddRange(equipments);
+                await context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($">>> GMAO SEED ERROR: {ex.Message}");
+        }
     }
 }

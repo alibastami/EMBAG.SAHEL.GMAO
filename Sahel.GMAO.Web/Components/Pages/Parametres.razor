@@ -2,12 +2,16 @@
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
 @using Sahel.GMAO.Web.Components.Dialogs
+@using Microsoft.EntityFrameworkCore
+@using Sahel.GMAO.Infrastructure.Data
 @inject INatureTravailService NatureService
 @inject IWorkingProfileService ProfileService
 @inject IBackupService BackupService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
+@inject IEquipementService EquipementService
+@inject IDbContextFactory<GmaoDbContext> DbFactory
 @attribute [Authorize(Roles = "DSI")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Configuration du Système</MudText>
@@ -77,6 +81,27 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudTextField T="string" Label="Version" Value="@("v1.0")" ReadOnly="true" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Info" />
+                </MudItem>
+                <MudItem xs="12">
+                    <MudText Typo="Typo.h6" Class="mt-4 mb-2">Source des Équipements</MudText>
+                    <MudPaper Class="pa-4" Outlined="true">
+                        <MudGrid>
+                            <MudItem xs="12" md="8">
+                                <MudTextField @bind-Value="_equipmentFilePath" Label="Chemin du fichier listmachine.txt" Placeholder="D:\..." Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12" md="4" Class="d-flex align-end">
+                                <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveSettings" Class="mr-2">Enregistrer</MudButton>
+                                <MudButton Variant="Variant.Filled" Color="Color.Info" StartIcon="@Icons.Material.Filled.Sync" OnClick="OnImportEquipments" Disabled="@_isImporting">
+                                    @(_isImporting ? "Importation..." : "Importer")
+                                </MudButton>
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudAlert Severity="Severity.Info" Dense="true">
+                                    Le fichier doit être au format texte avec des entêtes de section (ex: ATELIER...) et des listes de machines.
+                                </MudAlert>
+                            </MudItem>
+                        </MudGrid>
+                    </MudPaper>
                 </MudItem>
                 <MudItem xs="12">
                     <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-4">
@@ -188,11 +213,55 @@
     private bool _isExporting = false;
     private bool _isRestoring = false;
     private string _customBackupPath = string.Empty;
+    private string _equipmentFilePath = string.Empty;
+    private bool _isImporting = false;
 
     protected override async Task OnInitializedAsync()
     {
         await LoadNatures();
         await LoadProfiles();
+        await LoadSettings();
+    }
+
+    private async Task LoadSettings()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var setting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "EquipmentFilePath");
+        _equipmentFilePath = setting?.Value ?? @"D:\Embag-Sahel-Workspace\Sahel.GMAO\listmachine.txt";
+    }
+
+    private async Task SaveSettings()
+    {
+        using var context = await DbFactory.CreateDbContextAsync();
+        var setting = await context.AppSettings.FirstOrDefaultAsync(s => s.Key == "EquipmentFilePath");
+        if (setting == null)
+        {
+            context.AppSettings.Add(new AppSetting { Key = "EquipmentFilePath", Value = _equipmentFilePath });
+        }
+        else
+        {
+            setting.Value = _equipmentFilePath;
+        }
+        await context.SaveChangesAsync();
+        Snackbar.Add("Paramètres enregistrés", Severity.Success);
+    }
+
+    private async Task OnImportEquipments()
+    {
+        _isImporting = true;
+        try
+        {
+            await EquipementService.ImportFromFileAsync(_equipmentFilePath);
+            Snackbar.Add("Importation des équipements réussie", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur lors de l'importation : {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            _isImporting = false;
+        }
     }
 
     private async Task LoadProfiles()

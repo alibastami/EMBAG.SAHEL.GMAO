@@ -10,15 +10,20 @@
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Authorize(Roles = "DSI, Demandeur, Executant")]
+@attribute [Authorize(Roles = "DSI, Demandeur, BM, Executant")]
 
-<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Travail</MudText>
+<MudText Typo="Typo.h4" Class="mb-2 font-weight-bold" Color="Color.Primary">Suivi des Interventions</MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6" Color="Color.Secondary">Flux : Production (DI) → Méthodes (OT) → Maintenance (Exécution)</MudText>
 
 <MudDataGrid Items="@_demandes" Filterable="true" Hideable="true" Hover="true" RowClick="@((DataGridRowClickEventArgs<DemandeTravail> e) => OnRowClick(e))">
     <ToolBarContent>
         @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.Demandeur || _userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI)
         {
-            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouvelle DT</MudButton>
+            <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.AddCircle" Class="mr-2">1. Émettre Demande (DI)</MudButton>
+        }
+        @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.BM || _userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI)
+        {
+            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => NavManager.NavigateTo("/demandes"))" StartIcon="@Icons.Material.Filled.AssignmentInd" Class="mr-2">2. Gérer les OT</MudButton>
         }
         @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.Executant)
         {

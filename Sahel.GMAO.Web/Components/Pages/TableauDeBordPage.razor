@@ -10,142 +10,210 @@
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Tableau de Bord</MudText>
 
-<MudGrid>
-    <AuthorizeView Roles="@AppRoles.DSI">
-        <Authorized>
-            @* KPI Row *@
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
-                    <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Info" Size="Size.Large" Class="mr-4" />
-                    <div>
-                        <MudText Typo="Typo.h6">@_stats.TotalDtThisMonth</MudText>
-                        <MudText Typo="Typo.caption">Total DT ce mois</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
-                    <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
-                    <div>
-                        <MudText Typo="Typo.h6">@_stats.PendingDt</MudText>
-                        <MudText Typo="Typo.caption">DT en cours</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
-                    <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-4" />
-                    <div>
-                        <MudText Typo="Typo.h6">@_stats.StockAlerts</MudText>
-                        <MudText Typo="Typo.caption">Alertes Stock</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-            <MudItem xs="12" sm="6" md="3">
-                <MudPaper Class="pa-4 rounded-lg d-flex align-center" Elevation="2">
-                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" Size="Size.Large" Class="mr-4" />
-                    <div>
-                        <MudText Typo="Typo.h6">@_stats.RealizationRate.ToString("F1")%</MudText>
-                        <MudText Typo="Typo.caption">Taux de réalisation</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
+<AuthorizeView>
+    <Authorized>
+        <MudGrid>
+            @* DSI & BM View *@
+            @if (context.User.IsInRole(AppRoles.DSI) || context.User.IsInRole(AppRoles.BM))
+            {
+                @* KPI Row *@
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4 rounded-xl d-flex align-center border-l-8 border-info" Elevation="4">
+                        <MudIcon Icon="@Icons.Material.Filled.Input" Color="Color.Info" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_stats.TotalDtThisMonth</MudText>
+                            <MudText Typo="Typo.caption" Class="text-uppercase">Total DI ce mois</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4 rounded-xl d-flex align-center border-l-8 border-warning" Elevation="4">
+                        <MudIcon Icon="@Icons.Material.Filled.PendingActions" Color="Color.Warning" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_stats.PendingDt</MudText>
+                            <MudText Typo="Typo.caption" Class="text-uppercase">DI à Traiter (BM)</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4 rounded-xl d-flex align-center border-l-8 border-success" Elevation="4">
+                        <MudIcon Icon="@Icons.Material.Filled.Build" Color="Color.Success" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@(_stats.TotalDtThisMonth - _stats.PendingDt)</MudText>
+                            <MudText Typo="Typo.caption" Class="text-uppercase">OT en Exécution</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudPaper Class="pa-4 rounded-xl d-flex align-center border-l-8 border-primary" Elevation="4">
+                        <MudIcon Icon="@Icons.Material.Filled.Verified" Color="Color.Primary" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h5" Class="font-weight-bold">@_stats.RealizationRate.ToString("F1")%</MudText>
+                            <MudText Typo="Typo.caption" Class="text-uppercase">Taux de Clôture</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
 
-            @* Charts placeholder *@
-            <MudItem xs="12" md="8">
-                <MudCard Elevation="2" Class="rounded-lg" Style="height: 400px;">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Activités de Maintenance (12 mois)</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        @if (_stats.MonthlyActivities.Any())
-                        {
-                            <MudChart ChartType="ChartType.Bar" 
-                                      ChartSeries="@_series" 
-                                      XAxisLabels="@_xAxisLabels" 
-                                      Width="100%" 
-                                      Height="300px" />
-                        }
-                        else
-                        {
-                            <div class="d-flex align-center justify-center" style="height: 300px;">
-                                <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
-                            </div>
-                        }
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-            
-            <MudItem xs="12" md="4">
-                <MudCard Elevation="2" Class="rounded-lg" Style="height: 400px;">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Dernières DT</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudList T="string" Dense="true">
-                            @foreach (var dt in _recentDts)
+                <MudItem xs="12" md="8">
+                    <MudCard Elevation="4" Class="rounded-xl overflow-hidden">
+                        <MudCardHeader Class="bg-light-grey">
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Flux de Maintenance (12 mois)</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (_stats.MonthlyActivities.Any())
                             {
-                                <MudListItem Icon="@Icons.Material.Filled.Circle" 
-                                             IconColor="@GetStatusColor(dt.Statut)"
-                                             OnClick="@(() => NavManager.NavigateTo($"/demandes/{dt.Id}"))">
-                                    @dt.NumeroDT - @dt.TravailDemande
-                                </MudListItem>
+                                <MudChart ChartType="ChartType.Line" 
+                                          ChartSeries="@_series" 
+                                          XAxisLabels="@_xAxisLabels" 
+                                          Width="100%" 
+                                          Height="300px" />
                             }
-                        </MudList>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </Authorized>
-    </AuthorizeView>
-
-    <AuthorizeView Roles="@AppRoles.Executant">
-        <Authorized>
-            <MudItem xs="12">
-                <MudAlert Severity="Severity.Info" Variant="Variant.Filled" Class="mb-4">
-                    Bienvenue @context.User.FindFirst("FullName")?.Value. Vous avez <strong>@_myTasksCount</strong> tâches assignées en attente.
-                </MudAlert>
-            </MudItem>
-            
-            <MudItem xs="12" md="6">
-                <MudCard Elevation="2" Class="rounded-lg">
-                    <MudCardHeader>
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Mes Tâches Prioritaires</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        @if (_myTasks == null)
-                        {
-                            <MudProgressCircular Indeterminate="true" />
-                        }
-                        else if (!_myTasks.Any())
-                        {
-                            <MudText Typo="Typo.body2">Aucune tâche assignée pour le moment.</MudText>
-                        }
-                        else
-                        {
-                            <MudList T="DemandeTravail">
-                                @foreach (var task in _myTasks.Take(5))
+                            else
+                            {
+                                <div class="d-flex align-center justify-center" style="height: 300px;">
+                                    <MudProgressCircular Indeterminate="true" Color="Color.Primary" />
+                                </div>
+                            }
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+                
+                <MudItem xs="12" md="4">
+                    <MudCard Elevation="4" Class="rounded-xl overflow-hidden">
+                        <MudCardHeader Class="bg-light-grey">
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Dernières Alertes (Flux)</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudList T="string" Dense="true" Class="pa-0">
+                                @foreach (var dt in _recentDts)
                                 {
-                                    <MudListItem OnClick="@(() => NavManager.NavigateTo($"/demandes/{task.Id}"))" 
-                                                 Icon="@Icons.Material.Filled.Build" 
-                                                 Text="@($"{task.NumeroDT} - {task.TravailDemande}")" />
+                                    <MudListItem Icon="@Icons.Material.Filled.Circle" 
+                                                 IconColor="@GetStatusColor(dt.Statut)"
+                                                 OnClick="@(() => NavManager.NavigateTo($"/demandes/{dt.Id}"))"
+                                                 Class="mb-1 rounded-lg hover-bg-light">
+                                        <div class="d-flex flex-column">
+                                            <MudText Typo="Typo.body2" Class="font-weight-bold">@dt.NumeroDT</MudText>
+                                            <MudText Typo="Typo.caption" Class="text-truncate" Style="max-width: 200px;">@dt.TravailDemande</MudText>
+                                        </div>
+                                    </MudListItem>
                                 }
                             </MudList>
-                        }
-                    </MudCardContent>
-                    <MudCardActions>
-                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => NavManager.NavigateTo("/demandes"))">Voir tout</MudButton>
-                    </MudCardActions>
-                </MudCard>
-            </MudItem>
-        </Authorized>
-    </AuthorizeView>
-</MudGrid>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+
+            @* Production View *@
+            @if (context.User.IsInRole(AppRoles.Demandeur))
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6 rounded-xl bg-gradient-orange text-white mb-6" Elevation="6">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Factory" Size="Size.Large" Class="mr-4" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="font-weight-bold">Bienvenue @context.User.FindFirst("FullName")?.Value</MudText>
+                                <MudText Typo="Typo.subtitle1">Espace Unité Production - Suivez vos demandes d'intervention</MudText>
+                            </div>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="4" Class="rounded-xl">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">1. Mes Demandes en Cours</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (!_recentDts.Any(d => d.Statut < Sahel.GMAO.Core.Enums.StatutDT.Cloturee))
+                            {
+                                <MudAlert Severity="Severity.Normal" Variant="Variant.Outlined">Aucune demande en attente.</MudAlert>
+                            }
+                            else
+                            {
+                                <MudList T="string">
+                                    @foreach (var dt in _recentDts.Where(d => d.Statut < Sahel.GMAO.Core.Enums.StatutDT.Cloturee).Take(5))
+                                    {
+                                        <MudListItem Icon="@Icons.Material.Filled.Assignment" OnClick="@(() => NavManager.NavigateTo($"/demandes/{dt.Id}"))">
+                                            <div class="d-flex justify-space-between align-center">
+                                                <MudText>@dt.NumeroDT - @dt.Equipement?.Code</MudText>
+                                                <StatusBadge Statut="@dt.Statut" />
+                                            </div>
+                                        </MudListItem>
+                                    }
+                                </MudList>
+                            }
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Filled" Color="Color.Warning" StartIcon="@Icons.Material.Filled.AddCircle" OnClick="@(() => NavManager.NavigateTo("/demandes"))">Émettre une DI</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+
+            @* Maintenance View *@
+            @if (context.User.IsInRole(AppRoles.Executant))
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6 rounded-xl bg-gradient-red text-white mb-6" Elevation="6">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Build" Size="Size.Large" Class="mr-4" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="font-weight-bold">Salut @context.User.FindFirst("FullName")?.Value</MudText>
+                                <MudText Typo="Typo.subtitle1">Équipe Maintenance - @_myTasksCount tâches vous attendent</MudText>
+                            </div>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+                
+                <MudItem xs="12" md="6">
+                    <MudCard Elevation="4" Class="rounded-xl">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6" Class="font-weight-bold">Mes Ordres de Travail (OT)</MudText>
+                            </CardHeaderContent>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            @if (!_myTasks.Any())
+                            {
+                                <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">Excellent ! Toutes vos tâches sont terminées.</MudAlert>
+                            }
+                            else
+                            {
+                                <MudList T="DemandeTravail">
+                                    @foreach (var task in _myTasks.Take(5))
+                                    {
+                                        <MudListItem OnClick="@(() => NavManager.NavigateTo($"/demandes/{task.Id}"))" 
+                                                     Icon="@Icons.Material.Filled.PlayCircle" 
+                                                     IconColor="Color.Info"
+                                                     Text="@($"{task.NumeroDT} - {task.Equipement?.Code}")" />
+                                    }
+                                </MudList>
+                            }
+                        </MudCardContent>
+                        <MudCardActions>
+                            <MudButton Variant="Variant.Filled" Color="Color.Error" OnClick="@(() => NavManager.NavigateTo("/demandes"))">Voir ma liste complète</MudButton>
+                        </MudCardActions>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    </Authorized>
+</AuthorizeView>
+
+<style>
+    .bg-light-grey { background-color: #f8f9fa; }
+    .border-l-8 { border-left-width: 8px !important; }
+    .bg-gradient-orange { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
+    .bg-gradient-red { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); }
+    .hover-bg-light:hover { background-color: #f1f8e9; transition: background 0.3s; cursor: pointer; }
+    .rounded-xl { border-radius: 16px !important; }
+</style>
 
 @code {
     private List<DemandeTravail> _myTasks = new();

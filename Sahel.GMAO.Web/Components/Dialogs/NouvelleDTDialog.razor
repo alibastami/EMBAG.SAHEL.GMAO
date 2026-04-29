@@ -9,8 +9,8 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.Assignment" Class="mr-3 mb-n1" />
-            Nouvelle Demande de Travail
+            <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Warning" Class="mr-3 mb-n1" />
+            1. Émettre une Demande d'Intervention (DI)
         </MudText>
     </TitleContent>
     <DialogContent>
@@ -52,7 +52,7 @@
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annuler</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Émettre la DT</MudButton>
+        <MudButton Color="Color.Warning" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Émettre la DI</MudButton>
     </DialogActions>
 </MudDialog>
 

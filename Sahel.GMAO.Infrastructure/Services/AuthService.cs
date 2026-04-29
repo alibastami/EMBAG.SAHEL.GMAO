@@ -82,9 +82,23 @@ public class AuthService : IAuthService
     public async Task DeleteUserAsync(int id)
     {
         using var context = await _factory.CreateDbContextAsync();
+        
+        // Resiliency: Check if user has associated records
+        var hasDts = await context.DemandesTravail.AnyAsync(d => d.DemandeurId == id);
+        if (hasDts) throw new InvalidOperationException("Impossible de supprimer cet utilisateur car il a émis des demandes de travail (DT).");
+
+        var hasInterventions = await context.InterventionRoles.AnyAsync(i => i.IntervenantId == id);
+        if (hasInterventions) throw new InvalidOperationException("Impossible de supprimer cet utilisateur car il est intervenu sur des travaux.");
+
+        var hasLogs = await context.InterventionLogs.AnyAsync(l => l.IntervenantId == id);
+        if (hasLogs) throw new InvalidOperationException("Impossible de supprimer cet utilisateur car il possède des logs d'intervention.");
+
         var user = await context.Users.FindAsync(id);
         if (user != null)
         {
+            if (user.Username.Equals("admin", StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("L'utilisateur 'admin' ne peut pas être supprimé.");
+
             context.Users.Remove(user);
             await context.SaveChangesAsync();
         }

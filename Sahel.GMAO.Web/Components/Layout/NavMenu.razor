@@ -7,10 +7,10 @@
         <Authorized>
             @if (context.User.IsInRole(AppRoles.DSI))
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">GESTION</MudText>
+                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">ADMINISTRATION (DSI)</MudText>
                 <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Demandes de Travail</MudNavLink>
-                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Équipements</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Toutes les DI / OT</MudNavLink>
+                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Parc Équipements</MudNavLink>
                 
                 <MudNavGroup Title="Planning" Icon="@Icons.Material.Filled.Event" Expanded="false">
                     <MudNavLink Href="/planning/preventif" Icon="@Icons.Material.Filled.CalendarMonth">Prévisionnel</MudNavLink>
@@ -20,41 +20,47 @@
                 
                 <MudNavLink Href="/stock" Icon="@Icons.Material.Filled.Inventory">Stock PDR</MudNavLink>
                 <MudNavLink Href="/fabrication" Icon="@Icons.Material.Filled.Build">Fabrication</MudNavLink>
-                <MudNavLink Href="/consignations" Icon="@Icons.Material.Filled.Lock">Consignations</MudNavLink>
-                <MudNavLink Href="/travaux" Icon="@Icons.Material.Filled.Task">Travaux</MudNavLink>
                 
                 <MudDivider Class="my-2" />
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-1 mb-1">CONFIGURATION</MudText>
                 <MudNavLink Href="/utilisateurs" Icon="@Icons.Material.Filled.People">Utilisateurs</MudNavLink>
                 <MudNavLink Href="/parametres" Icon="@Icons.Material.Filled.Settings">Paramètres</MudNavLink>
             }
-            else if (context.User.IsInRole(AppRoles.Executant))
-            {
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">MAINTENANCE</MudText>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PlaylistAddCheck">Mes Tâches</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Toutes les DT</MudNavLink>
-                <MudNavLink Href="/consignations" Icon="@Icons.Material.Filled.Lock">Consignations</MudNavLink>
-                <MudNavLink Href="/fiches-entretien" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Fiches Entretien</MudNavLink>
-                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Équipements</MudNavLink>
-            }
             else if (context.User.IsInRole(AppRoles.Demandeur))
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">ACCÈS DIRECT</MudText>
+                <MudText Typo="Typo.subtitle2" Color="Color.Warning" Class="ml-4 mt-3 mb-1">UNITÉ PRODUCTION</MudText>
                 <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Mes Demandes (DT)</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.AddCircle" IconColor="Color.Warning">1. Émettre Demande (DI)</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.History">2. Suivi mes DI</MudNavLink>
+            }
+            else if (context.User.IsInRole(AppRoles.BM))
+            {
+                <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="ml-4 mt-3 mb-1">BUREAU MÉTHODE (BM)</MudText>
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Input" IconColor="Color.Success">1. Réceptionner DI</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.AssignmentTurnedIn" IconColor="Color.Success">2. Créer & Assigner OT</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">3. Valider Interventions</MudNavLink>
+                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.Settings">Gestion Équipements</MudNavLink>
+            }
+            else if (context.User.IsInRole(AppRoles.Executant))
+            {
+                <MudText Typo="Typo.subtitle2" Color="Color.Error" Class="ml-4 mt-3 mb-1">EXÉCUTANT (MAINTENANCE)</MudText>
+                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PlaylistAddCheck">1. Mes Ordres de Travail (OT)</MudNavLink>
+                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.History">2. Historique Interventions</MudNavLink>
+                <MudNavLink Href="/fiches-entretien" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Fiches Entretien</MudNavLink>
+                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Équipements</MudNavLink>
             }
             
             @{
                 var isDSI = context.User.IsInRole(AppRoles.DSI);
                 var isExecutant = context.User.IsInRole(AppRoles.Executant);
                 var isDemandeur = context.User.IsInRole(AppRoles.Demandeur);
+                var isBM = context.User.IsInRole(AppRoles.BM);
 
-                if (!isDSI && !isExecutant && !isDemandeur)
+                if (!isDSI && !isExecutant && !isDemandeur && !isBM)
                 {
                     <MudAlert Severity="Severity.Warning" Dense="true" Class="mx-4 my-2">
-                        Rôle inconnu. <MudLink Color="Color.Inherit" Underline="Underline.Always" OnClick="Logout">Déconnectez-vous</MudLink> pour rafraîchir vos accès.
+                        Rôle inconnu. <MudLink Color="Color.Inherit" Underline="Underline.Always" OnClick="Logout">Déconnectez-vous</MudLink>
                     </MudAlert>
-                    <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord (Limité)</MudNavLink>
                 }
             }
             

@@ -14,9 +14,11 @@
 @inject IDialogService DialogService
 @attribute [Authorize(Roles = "Executant,DSI")]
 
-<MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">
-    @(Id.HasValue ? $"Exécution DT n° {_dt?.NumeroDT}" : "Mes Tâches")
+<MudText Typo="Typo.h4" Class="mb-2 font-weight-bold" Color="Color.Success">
+    <MudIcon Icon="@Icons.Material.Filled.Build" Class="mr-3 mb-n1" />
+    @(Id.HasValue ? $"3. Exécution OT : {_dt?.NumeroDT}" : "Mes Ordres de Travail (OT)")
 </MudText>
+<MudText Typo="Typo.subtitle1" Class="mb-6" Color="Color.Secondary">Étape Maintenance : Réalisation des travaux et compte-rendu</MudText>
 
 @if (!Id.HasValue)
 {
@@ -106,10 +108,10 @@ else
                             <MudDivider Class="my-4" />
                             <div class="d-flex justify-space-between align-center">
                                 <MudText Typo="Typo.subtitle1">
-                                    Total Personnel : <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">@_myRole?.HeuresTravaillees H</MudChip>
+                                    Heures Totales : <MudChip T="string" Color="Color.Success" Variant="Variant.Filled">@_myRole?.HeuresTravaillees H</MudChip>
                                 </MudText>
-                                <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.Save">
-                                    Terminer / Sauvegarder Statut
+                                <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="SaveDtInfo" StartIcon="@Icons.Material.Filled.CheckCircle" Size="Size.Large">
+                                    3. Finaliser & Envoyer au BM
                                 </MudButton>
                             </div>
                         </MudItem>

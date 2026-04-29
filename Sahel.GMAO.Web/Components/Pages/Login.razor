@@ -10,104 +10,293 @@
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 
-<div class="login-card">
+<div class="login-wrapper">
     @* Logo Section *@
-    <div class="d-flex flex-column align-center mb-6">
+    <div class="brand-section">
         @if (System.IO.File.Exists(System.IO.Path.Combine("wwwroot", "images", "gipec-logo-big.jpg")))
         {
-            <img src="/images/gipec-logo-big.jpg" alt="GIPEC" width="200" class="mb-2" />
+            <img src="/images/gipec-logo-big.jpg" alt="GIPEC" class="brand-logo" />
         }
-        <span class="company-text">EPE EMBAG SPA</span>
+        <h1 class="brand-name">SAHEL GMAO</h1>
+        <div class="brand-divider"></div>
+        <p class="brand-tagline">Système Intuitif de Gestion de Maintenance</p>
     </div>
 
-    @* Subtitle / Main Label *@
-    <div class="text-center mb-8">
-        <span class="app-subtitle">SAHEL GMAO</span>
+    @* Role Icons Section *@
+    <div class="roles-container">
+        <div class="role-card dsi @(_selectedRole == "DSI" ? "active" : "")" @onclick='() => SelectRole("DSI")'>
+            <div class="icon-box">
+                <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" />
+            </div>
+            <div class="role-info">
+                <span class="role-title">DSI</span>
+                <span class="role-desc">Administrateur</span>
+            </div>
+        </div>
+
+        <div class="role-card production @(_selectedRole == "Production" ? "active" : "")" @onclick='() => SelectRole("Production")'>
+            <div class="icon-box">
+                <MudIcon Icon="@Icons.Material.Filled.Factory" />
+            </div>
+            <div class="role-info">
+                <span class="role-title">PRODUCTION</span>
+                <span class="role-desc">Demandeur DI</span>
+            </div>
+        </div>
+
+        <div class="role-card bm @(_selectedRole == "BM" ? "active" : "")" @onclick='() => SelectRole("BM")'>
+            <div class="icon-box">
+                <MudIcon Icon="@Icons.Material.Filled.Engineering" />
+            </div>
+            <div class="role-info">
+                <span class="role-title">BM</span>
+                <span class="role-desc">Bureau Méthode</span>
+            </div>
+        </div>
+
+        <div class="role-card executant @(_selectedRole == "Executant" ? "active" : "")" @onclick='() => SelectRole("Executant")'>
+            <div class="icon-box">
+                <MudIcon Icon="@Icons.Material.Filled.Build" />
+            </div>
+            <div class="role-info">
+                <span class="role-title">MAINTENANCE</span>
+                <span class="role-desc">Exécutant OT</span>
+            </div>
+        </div>
     </div>
 
-    @* Hidden Form for Cookie Authentication *@
-    <form id="accountLoginForm" action="/Account/Login" method="post" style="display:none;">
-        <input type="hidden" name="username" value="@_username" />
-        <input type="hidden" name="password" value="@_password" />
-    </form>
-
-    @* Form *@
-    <MudForm @ref="_form" @bind-IsValid="@_success">
-        <MudTextField T="string" 
-                      @bind-Value="_username" 
-                      Label="Nom d'utilisateur" 
-                      Variant="Variant.Outlined" 
-                      FullWidth="true"
-                      Margin="Margin.Dense"
-                      ShrinkLabel="true"
-                      Class="mb-4" />
-
-        <MudTextField T="string" 
-                      @bind-Value="_password" 
-                      Label="Mot de passe" 
-                      InputType="@_passwordType"
-                      Variant="Variant.Outlined" 
-                      FullWidth="true"
-                      Margin="Margin.Dense"
-                      ShrinkLabel="true"
-                      Adornment="Adornment.End"
-                      AdornmentIcon="@_passwordIcon"
-                      OnAdornmentClick="TogglePasswordVisibility"
-                      Class="mb-6" />
-        
-        <MudButton Variant="Variant.Filled" 
-                   Color="Color.Primary" 
-                   Size="Size.Large" 
-                   FullWidth="true" 
-                   ButtonType="ButtonType.Button"
-                   OnClick="LoginAsync" 
-                   Disabled="@_loading">
-            @if (_loading)
+    @* Login Form Section *@
+    <div class="login-card-modern anim-slide-up">
+        <div class="form-header">
+            @if (string.IsNullOrEmpty(_selectedRole))
             {
-                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
-                <MudText Class="ms-2">CONNEXION...</MudText>
+                <h3>Connectez-vous à votre compte</h3>
             }
             else
             {
-                <MudText>SE CONNECTER</MudText>
+                <h3>Connexion - Access @_selectedRole</h3>
             }
-        </MudButton>
+        </div>
 
-        @if (_showError || !string.IsNullOrEmpty(ErrorParam))
-        {
-            <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mt-4">
-                Identifiants incorrects. Veuillez réessayer.
-            </MudAlert>
-        }
-    </MudForm>
+        @* Hidden Form for Cookie Authentication *@
+        <form id="accountLoginForm" action="/Account/Login" method="post" style="display:none;">
+            <input type="hidden" name="username" value="@_username" />
+            <input type="hidden" name="password" value="@_password" />
+        </form>
+
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudTextField T="string" 
+                          @bind-Value="_username" 
+                          Label="Nom d'utilisateur" 
+                          Variant="Variant.Outlined" 
+                          FullWidth="true"
+                          Margin="Margin.Dense"
+                          ShrinkLabel="true"
+                          Class="mb-4" />
+
+            <MudTextField T="string" 
+                          @bind-Value="_password" 
+                          Label="Mot de passe" 
+                          InputType="@_passwordType"
+                          Variant="Variant.Outlined" 
+                          FullWidth="true"
+                          Margin="Margin.Dense"
+                          ShrinkLabel="true"
+                          Adornment="Adornment.End"
+                          AdornmentIcon="@_passwordIcon"
+                          OnAdornmentClick="TogglePasswordVisibility"
+                          Class="mb-6" />
+            
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       Size="Size.Large" 
+                       FullWidth="true" 
+                       ButtonType="ButtonType.Button"
+                       OnClick="LoginAsync" 
+                       Disabled="@_loading"
+                       Class="login-btn">
+                @if (_loading)
+                {
+                    <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                    <MudText Class="ms-2">AUTHENTIFICATION...</MudText>
+                }
+                else
+                {
+                    <MudText>ENTRER DANS L'APPLICATION</MudText>
+                }
+            </MudButton>
+
+            @if (_showError || !string.IsNullOrEmpty(ErrorParam))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Dense="true" Class="mt-4">
+                    Accès refusé. Veuillez vérifier vos identifiants.
+                </MudAlert>
+            }
+        </MudForm>
+    </div>
 </div>
 
 <style>
-    .login-card {
-        max-width: 380px;
+    .login-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        max-width: 900px;
         width: 100%;
         margin: auto;
-        padding: 44px 32px;
-        background: #FFFFFF;
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(27,94,32,0.25);
-        border: 1px solid #C8E6C9;
+        padding: 20px;
     }
 
-    .company-text {
-        font-size: 22px;
+    .brand-section {
+        text-align: center;
+        margin-bottom: 40px;
+    }
+
+    .brand-logo {
+        width: 150px;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+
+    .brand-name {
+        font-size: 36px;
         font-weight: 900;
         color: #1B5E20;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
+        letter-spacing: 2px;
+        margin-bottom: 5px;
     }
 
-    .app-subtitle {
-        font-size: 15px;
-        color: #558B2F;
-        font-weight: 600;
-        display: block;
+    .brand-divider {
+        width: 60px;
+        height: 4px;
+        background: #43A047;
+        margin: 10px auto;
+        border-radius: 2px;
+    }
+
+    .brand-tagline {
+        font-size: 14px;
+        color: #666;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .roles-container {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        width: 100%;
+        margin-bottom: 40px;
+    }
+
+    .role-card {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
         text-align: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .role-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .role-card.active {
+        border-color: #1B5E20;
+        background: #F1F8E9;
+    }
+
+    .icon-box {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5f5;
+        transition: all 0.3s;
+    }
+
+    .role-card .mud-icon-root {
+        font-size: 32px;
+        color: #666;
+    }
+
+    .role-card.dsi .icon-box { background: #E3F2FD; }
+    .role-card.dsi.active .mud-icon-root { color: #1976D2; }
+    
+    .role-card.production .icon-box { background: #FFF3E0; }
+    .role-card.production.active .mud-icon-root { color: #F57C00; }
+    
+    .role-card.bm .icon-box { background: #E8F5E9; }
+    .role-card.bm.active .mud-icon-root { color: #2E7D32; }
+    
+    .role-card.executant .icon-box { background: #FFEBEE; }
+    .role-card.executant.active .mud-icon-root { color: #D32F2F; }
+
+    .role-title {
+        display: block;
+        font-weight: 800;
+        font-size: 14px;
+        color: #333;
+    }
+
+    .role-desc {
+        display: block;
+        font-size: 11px;
+        color: #888;
+        text-transform: uppercase;
+    }
+
+    .login-card-modern {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        width: 100%;
+        max-width: 450px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+        border: 1px solid #eee;
+    }
+
+    .form-header {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .form-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #444;
+    }
+
+    .login-btn {
+        height: 52px;
+        border-radius: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
+
+    .anim-slide-up {
+        animation: slideUp 0.5s ease-out;
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@media (max-width: 768px) {
+        .roles-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
     }
 </style>
 
@@ -118,6 +307,12 @@
     private bool _showError = false;
     private string _username = "";
     private string _password = "";
+    private string _selectedRole = "";
+
+    private void SelectRole(string role)
+    {
+        _selectedRole = role;
+    }
 
     [Parameter]
     [SupplyParameterFromQuery(Name = "error")]

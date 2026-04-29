@@ -14,14 +14,41 @@
     <div class="d-flex align-center mb-6">
         <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick="@(() => NavManager.NavigateTo("/demandes"))" Class="mr-2" />
         <MudText Typo="Typo.h4" Class="font-weight-bold" Color="Color.Primary">
-            Détails de la DT : @(_dt?.NumeroDT ?? "Chargement...")
+            Intervention : @(_dt?.NumeroDT ?? "Chargement...")
         </MudText>
         <MudSpacer />
         @if (_dt != null)
         {
-            <StatusBadge Statut="@_dt.Statut" />
+            <div class="d-flex flex-column align-end">
+                <StatusBadge Statut="@_dt.Statut" />
+                <MudText Typo="Typo.caption" Class="mt-1">Flux : Production → BM → Maintenance</MudText>
+            </div>
         }
     </div>
+
+    @if (_dt != null)
+    {
+        <MudPaper Elevation="0" Class="pa-4 mb-6 rounded-xl bg-light-gradient border">
+            <MudGrid Justify="Justify.Center">
+                <MudItem xs="3" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="@(_dt.Statut >= StatutDT.EnAttente ? Color.Warning : Color.Default)" Size="Size.Large" />
+                    <MudText Typo="Typo.caption" Class="d-block font-weight-bold">1. Émission DI</MudText>
+                </MudItem>
+                <MudItem xs="3" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Color="@(_dt.Statut >= StatutDT.EnCours ? Color.Info : Color.Default)" Size="Size.Large" />
+                    <MudText Typo="Typo.caption" Class="d-block font-weight-bold">2. Création OT</MudText>
+                </MudItem>
+                <MudItem xs="3" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Build" Color="@(_dt.Statut >= StatutDT.Terminee ? Color.Success : Color.Default)" Size="Size.Large" />
+                    <MudText Typo="Typo.caption" Class="d-block font-weight-bold">3. Exécution</MudText>
+                </MudItem>
+                <MudItem xs="3" Class="text-center">
+                    <MudIcon Icon="@Icons.Material.Filled.Verified" Color="@(_dt.Statut >= StatutDT.Cloturee ? Color.Primary : Color.Default)" Size="Size.Large" />
+                    <MudText Typo="Typo.caption" Class="d-block font-weight-bold">4. Clôture</MudText>
+                </MudItem>
+            </MudGrid>
+        </MudPaper>
+    }
 
     @if (_loading)
     {
@@ -90,7 +117,7 @@
                                             <td>@_dt.DateEmission.ToString("dd/MM/yyyy HH:mm")</td>
                                         </tr>
                                         <tr>
-                                            <td class="font-weight-bold">Demandeur</td>
+                                            <td class="font-weight-bold">Émis par (Production)</td>
                                             <td>@_dt.Demandeur?.FullName (@_dt.Demandeur?.Username)</td>
                                         </tr>
                                     </tbody>
@@ -186,7 +213,7 @@
                                         else
                                         {
                                             <div style="max-height: 300px; overflow-y: auto;">
-                                                <MudTimeline TimelinePosition="TimelinePosition.Start" Dense="true">
+                                                <MudTimeline TimelinePosition="TimelinePosition.Start">
                                                     @foreach (var entry in _dt.JournalInterventions.OrderByDescending(e => e.DateIntervention))
                                                     {
                                                         <MudTimelineItem Color="Color.Info" Size="Size.Small">
@@ -321,6 +348,7 @@
     .border-success { border-left-color: var(--mud-palette-success) !important; }
     .border-info { border-left-color: var(--mud-palette-info) !important; }
     .bg-light { background-color: var(--mud-palette-background-grey) !important; }
+    .bg-light-gradient { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); }
     .italic { font-style: italic; }
 </style>
 

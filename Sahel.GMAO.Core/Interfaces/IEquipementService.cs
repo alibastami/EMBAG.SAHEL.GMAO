@@ -12,4 +12,5 @@ public interface IEquipementService
     Task CreateAsync(Equipement equipement);
     Task UpdateAsync(Equipement equipement);
     Task DeleteAsync(int id);
+    Task ImportFromFileAsync(string? path = null);
 }

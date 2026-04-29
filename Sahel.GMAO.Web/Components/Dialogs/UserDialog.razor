@@ -3,7 +3,6 @@
 @using Sahel.GMAO.Core.Constants
 @using Sahel.GMAO.Core.Enums
 @inject ISnackbar Snackbar
-@inject IWorkingProfileService ProfileService
 
 <MudDialog>
     <TitleContent>
@@ -23,14 +22,15 @@
                 </MudItem>
                 <MudItem xs="12" sm="6">
                     <MudSelect T="string" Label="Rôle" @bind-Value="User.Role" Required="true">
-                        <MudSelectItem Value="@AppRoles.DSI">@AppRoles.DSI</MudSelectItem>
-                        <MudSelectItem Value="@AppRoles.Executant">@AppRoles.Executant</MudSelectItem>
-                        <MudSelectItem Value="@AppRoles.Demandeur">@AppRoles.Demandeur</MudSelectItem>
+                        <MudSelectItem Value="@AppRoles.DSI">DSI / Admin</MudSelectItem>
+                        <MudSelectItem Value="@AppRoles.Demandeur">Production</MudSelectItem>
+                        <MudSelectItem Value="@AppRoles.BM">BM (Méthodes)</MudSelectItem>
+                        <MudSelectItem Value="@AppRoles.Executant">Exécutant / Maintenance</MudSelectItem>
                     </MudSelect>
                 </MudItem>
                 @if (User.Role == AppRoles.Executant)
                 {
-                    <MudItem xs="12" sm="6">
+                    <MudItem xs="12" sm="12">
                         <MudSelect T="Specialite?" Label="Spécialité" @bind-Value="User.Specialite" Variant="Variant.Outlined">
                             <MudSelectItem T="Specialite?" Value="null">Aucune</MudSelectItem>
                             @foreach (var spec in Enum.GetValues<Specialite>())
@@ -39,17 +39,8 @@
                             }
                         </MudSelect>
                     </MudItem>
-                    <MudItem xs="12" sm="6">
-                        <MudSelect T="int?" Label="Profil de Travail" @bind-Value="User.WorkingProfileId" Variant="Variant.Outlined">
-                            <MudSelectItem T="int?" Value="null">Aucun profil</MudSelectItem>
-                            @foreach (var p in _profiles)
-                            {
-                                <MudSelectItem T="int?" Value="@p.Id">@p.Name (@p.HourlyRate.ToString("N0") DA/H)</MudSelectItem>
-                            }
-                        </MudSelect>
-                    </MudItem>
                 }
-                <MudItem xs="12" sm="@(User.Role == AppRoles.Executant ? 12 : 6)">
+                <MudItem xs="12" sm="6">
                     <MudTextField T="string" Label="Poste / Qualification" @bind-Value="User.Position" Variant="Variant.Outlined" />
                 </MudItem>
                 <MudItem xs="12">
@@ -83,12 +74,6 @@
     private string _password = "";
     private bool _success;
     private MudForm _form = null!;
-    private List<WorkingProfile> _profiles = new();
-
-    protected override async Task OnInitializedAsync()
-    {
-        _profiles = await ProfileService.GetAllAsync();
-    }
 
     void Cancel() => MudDialog.Cancel();
 

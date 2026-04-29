@@ -29,6 +29,7 @@ public class GmaoDbContext : DbContext
     public DbSet<AppNotification> Notifications { get; set; }
     public DbSet<InterventionLog> InterventionLogs { get; set; }
     public DbSet<WorkingProfile> WorkingProfiles { get; set; }
+    public DbSet<AppSetting> AppSettings { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -257,6 +258,12 @@ public class GmaoDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(l => l.IntervenantId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AppSetting>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Key).IsUnique();
         });
     }
 }

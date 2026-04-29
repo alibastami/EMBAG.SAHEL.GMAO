@@ -134,9 +134,16 @@
 
         if (result == true)
         {
-            await EquipementService.DeleteAsync(equipement.Id);
-            Snackbar.Add("Équipement supprimé", Severity.Success);
-            await LoadData();
+            try
+            {
+                await EquipementService.DeleteAsync(equipement.Id);
+                Snackbar.Add("Équipement supprimé", Severity.Success);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                Snackbar.Add($"Erreur lors de la suppression : {ex.Message}", Severity.Error);
+            }
         }
     }
 
