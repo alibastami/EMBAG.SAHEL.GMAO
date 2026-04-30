@@ -167,8 +167,10 @@
                 </MudCard>
             </MudItem>
 
-            <!-- Exécution et Pointage -->
-            <MudItem xs="12">
+            <!-- Exécution et Pointage (Hidden for Production) -->
+            @if (_userRole != AppRoles.Demandeur)
+            {
+                <MudItem xs="12">
                 <MudCard Elevation="3" Class="rounded-lg border-l-4 border-success">
                     <MudCardHeader>
                         <CardHeaderAvatar>
@@ -281,9 +283,12 @@
                     </MudCardContent>
                 </MudCard>
             </MudItem>
+            }
 
-            <!-- Pièces de Rechange -->
-            <MudItem xs="12">
+            <!-- Pièces de Rechange (Hidden for Production) -->
+            @if (_userRole != AppRoles.Demandeur)
+            {
+                <MudItem xs="12">
                 <MudCard Elevation="3" Class="rounded-lg border-l-4 border-info">
                     <MudCardHeader>
                         <CardHeaderAvatar>
@@ -337,6 +342,7 @@
                     </MudCardContent>
                 </MudCard>
             </MudItem>
+            }
         </MudGrid>
     }
 </MudContainer>

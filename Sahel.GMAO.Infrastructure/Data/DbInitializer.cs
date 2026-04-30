@@ -149,10 +149,7 @@ public static class DbInitializer
         await CleanupDummyEquipmentsAsync(context);
 
         // 2. Seed equipments from listmachine.txt
-        if (!await context.Equipements.AnyAsync() || (await context.Equipements.CountAsync() <= 3 && await context.Equipements.AnyAsync(e => e.Code == "OFF-001")))
-        {
-            await SeedEquipmentsFromFileAsync(context);
-        }
+        await SeedEquipmentsFromFileAsync(context);
 
         // 3. Seed PDR Articles
         if (!await context.ArticlesPdr.AnyAsync())
@@ -284,20 +281,20 @@ public static class DbInitializer
                 string code = "";
                 string designation = "";
 
-                var parts = trimmedLine.Split(' ', 2);
-                if (parts.Length > 1 && int.TryParse(parts[0], out _))
+                // Remove quotes if present
+                var cleanLine = trimmedLine.Replace("\"", "").Trim();
+                
+                var parts = cleanLine.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries);
+                
+                // If it starts with a digit, assume the first part is the code
+                if (parts.Length > 0 && char.IsDigit(parts[0][0]))
                 {
                     code = parts[0];
-                    designation = parts[1];
-                }
-                else if (int.TryParse(trimmedLine, out _))
-                {
-                    code = trimmedLine;
-                    designation = "Machine " + code;
+                    designation = parts.Length > 1 ? parts[1] : ("Machine " + code);
                 }
                 else
                 {
-                    designation = trimmedLine;
+                    designation = cleanLine;
                     code = designation.Length > 5 ? designation.Substring(0, 5).ToUpper() : designation.ToUpper();
                     code = code.Replace(" ", "-");
                 }
@@ -319,6 +316,11 @@ public static class DbInitializer
             {
                 context.Equipements.AddRange(equipments);
                 await context.SaveChangesAsync();
+                Console.WriteLine($">>> GMAO: Successfully added {equipments.Count} new equipments.");
+            }
+            else
+            {
+                Console.WriteLine(">>> GMAO: No new equipments to add (all already exist).");
             }
         }
         catch (Exception ex)

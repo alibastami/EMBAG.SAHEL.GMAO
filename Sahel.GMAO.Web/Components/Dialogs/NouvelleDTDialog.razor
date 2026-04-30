@@ -19,7 +19,8 @@
                 <MudItem xs="12">
                     <MudAutocomplete T="Equipement" Label="Équipement" @bind-Value="_selectedEquipement"
                                      SearchFunc="@SearchEquipement" ToStringFunc="@(e => e == null ? null : $"{e.Code} - {e.Designation}")"
-                                     Required="true" RequiredError="L'équipement est requis" />
+                                     Required="true" RequiredError="L'équipement est requis"
+                                     MaxItems="200" />
                 </MudItem>
                 <MudItem xs="12" sm="8">
                     <MudTextField T="string" Label="Organe / Partie" @bind-Value="_dt.OrganePartie" Required="true" RequiredError="L'organe est requis" />
@@ -27,10 +28,7 @@
                 <MudItem xs="12" sm="4">
                     <MudNumericField T="double?" Label="Temps de marche (H)" @bind-Value="_dt.TempsDeMarcheHeures" Min="0" HideSpinButtons="true" />
                 </MudItem>
-                <MudItem xs="12" sm="6">
-                    <MudDatePicker Label="Date de Réception Prévue" @bind-Date="_dt.DateReceptionPrevue" />
-                </MudItem>
-                <MudItem xs="12" sm="6">
+                <MudItem xs="12">
                     <MudSelect T="Specialite?" Label="Spécialité Requise" @bind-Value="_dt.SpecialiteRequise">
                         <MudSelectItem T="Specialite?" Value="null">Générale / Non spécifiée</MudSelectItem>
                         @foreach (var spec in Enum.GetValues<Specialite>())

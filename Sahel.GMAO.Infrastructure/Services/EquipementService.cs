@@ -137,20 +137,20 @@ public class EquipementService : IEquipementService
             string code = "";
             string designation = "";
 
-            var parts = trimmedLine.Split(' ', 2);
-            if (parts.Length > 1 && int.TryParse(parts[0], out _))
+            // Remove quotes if present
+            var cleanLine = trimmedLine.Replace("\"", "").Trim();
+            
+            var parts = cleanLine.Split(new[] { ' ', '\t' }, 2, StringSplitOptions.RemoveEmptyEntries);
+            
+            // If it starts with a digit, assume the first part is the code
+            if (parts.Length > 0 && char.IsDigit(parts[0][0]))
             {
                 code = parts[0];
-                designation = parts[1];
-            }
-            else if (int.TryParse(trimmedLine, out _))
-            {
-                code = trimmedLine;
-                designation = "Machine " + code;
+                designation = parts.Length > 1 ? parts[1] : ("Machine " + code);
             }
             else
             {
-                designation = trimmedLine;
+                designation = cleanLine;
                 code = designation.Length > 5 ? designation.Substring(0, 5).ToUpper() : designation.ToUpper();
                 code = code.Replace(" ", "-");
             }
