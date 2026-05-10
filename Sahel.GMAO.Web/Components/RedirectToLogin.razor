@@ -3,9 +3,19 @@
 @code {
     protected override async Task OnInitializedAsync()
     {
-        // Give the AuthenticationStateProvider plenty of time (1.5s) to recover
-        // the session from local storage before giving up and redirecting.
-        await Task.Delay(1500);
-        NavigationManager.NavigateTo("login", true);
+        try 
+        {
+            // Wait slightly for session recovery
+            await Task.Delay(500);
+            NavigationManager.NavigateTo("login", true);
+        }
+        catch (Microsoft.JSInterop.JSDisconnectedException)
+        {
+            // Circuit is already closing, ignore
+        }
+        catch (Exception)
+        {
+            // Other errors, ignore if closing
+        }
     }
 }

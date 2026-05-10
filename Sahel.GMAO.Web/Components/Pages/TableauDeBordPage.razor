@@ -202,6 +202,42 @@
                     </MudCard>
                 </MudItem>
             }
+
+            @* Magazin View *@
+            @if (context.User.IsInRole(AppRoles.Magazin))
+            {
+                <MudItem xs="12">
+                    <MudPaper Class="pa-6 rounded-xl bg-gradient-purple text-white mb-6" Elevation="6">
+                        <div class="d-flex align-center">
+                            <MudIcon Icon="@Icons.Material.Filled.Inventory" Size="Size.Large" Class="mr-4" />
+                            <div>
+                                <MudText Typo="Typo.h4" Class="font-weight-bold">Espace Magasin - @_stats.StockAlerts Alertes</MudText>
+                                <MudText Typo="Typo.subtitle1">Gestion des Pièces de Rechange (PDR)</MudText>
+                            </div>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-6 rounded-xl d-flex align-center border-l-8 border-error" Elevation="4">
+                        <MudIcon Icon="@Icons.Material.Filled.Warning" Color="Color.Error" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h4" Class="font-weight-bold">@_stats.StockAlerts</MudText>
+                            <MudText Typo="Typo.subtitle2">Articles sous le seuil</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+
+                <MudItem xs="12" sm="6" md="4">
+                    <MudPaper Class="pa-6 rounded-xl d-flex align-center border-l-8 border-info" Elevation="4" @onclick='() => NavManager.NavigateTo("/stock")' Style="cursor: pointer;">
+                        <MudIcon Icon="@Icons.Material.Filled.ListAlt" Color="Color.Info" Size="Size.Large" Class="mr-4" />
+                        <div>
+                            <MudText Typo="Typo.h6" Class="font-weight-bold">Gérer Stock</MudText>
+                            <MudText Typo="Typo.caption">Accéder à l'inventaire</MudText>
+                        </div>
+                    </MudPaper>
+                </MudItem>
+            }
         </MudGrid>
     </Authorized>
 </AuthorizeView>
@@ -211,6 +247,7 @@
     .border-l-8 { border-left-width: 8px !important; }
     .bg-gradient-orange { background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%); }
     .bg-gradient-red { background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%); }
+    .bg-gradient-purple { background: linear-gradient(135deg, #7B1FA2 0%, #4A148C 100%); }
     .hover-bg-light:hover { background-color: #f1f8e9; transition: background 0.3s; cursor: pointer; }
     .rounded-xl { border-radius: 16px !important; }
 </style>
@@ -230,20 +267,24 @@
         var username = user.Identity?.Name ?? "";
         var role = user.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
 
-        if (role == AppRoles.DSI)
+        if (role == AppRoles.DSI || role == AppRoles.BM || role == AppRoles.Magazin)
         {
             _stats = await DtService.GetDashboardStatsAsync();
-            var allDts = await DtService.GetAllAsync();
-            _recentDts = allDts.OrderByDescending(d => d.DateEmission).Take(5).ToList();
+            
+            if (role != AppRoles.Magazin)
+            {
+                var allDts = await DtService.GetAllAsync();
+                _recentDts = allDts.OrderByDescending(d => d.DateEmission).Take(5).ToList();
 
-            // Prepare chart data
-            _series.Clear();
-            _series.Add(new ChartSeries 
-            { 
-                Name = "Interventions", 
-                Data = _stats.MonthlyActivities.Select(a => (double)a.Count).ToArray() 
-            });
-            _xAxisLabels = _stats.MonthlyActivities.Select(a => a.MonthName).ToArray();
+                // Prepare chart data
+                _series.Clear();
+                _series.Add(new ChartSeries 
+                { 
+                    Name = "Interventions", 
+                    Data = _stats.MonthlyActivities.Select(a => (double)a.Count).ToArray() 
+                });
+                _xAxisLabels = _stats.MonthlyActivities.Select(a => a.MonthName).ToArray();
+            }
         }
         else if (role == AppRoles.Executant)
         {

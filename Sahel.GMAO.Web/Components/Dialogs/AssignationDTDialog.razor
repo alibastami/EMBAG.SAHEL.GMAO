@@ -9,39 +9,68 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@Icons.Material.Filled.AssignmentInd" Color="Color.Success" Class="mr-3 mb-n1" />
-            2. Création de l'Ordre de Travail (OT)
+            <MudIcon Icon="@Icons.Material.Filled.Group" Color="Color.Success" Class="mr-3 mb-n1" />
+            Gestion de l'Ordre de Travail (OT) - @Dt.NumeroDT
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudText Class="mb-4">Assigner un technicien à la demande <b>@Dt.NumeroDT</b> (@Dt.Equipement.Code)</MudText>
-        
-        <MudForm @ref="_form" @bind-IsValid="@_success">
-            <MudSelect T="User" Label="Sélectionner le technicien" Value="_selectedTechnicien" ValueChanged="OnTechnicianChanged" Required="true" RequiredError="Veuillez choisir un technicien" Variant="Variant.Outlined">
-                @foreach (var tech in _techniciens)
+        <MudGrid>
+            <MudItem xs="12">
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-2">Techniciens Assignés :</MudText>
+                @if (Dt.Intervenants == null || !Dt.Intervenants.Any())
                 {
-                    <MudSelectItem Value="@tech">@tech.FullName (@(tech.WorkingProfile?.Name ?? tech.Role))</MudSelectItem>
+                    <MudAlert Severity="Severity.Info" Dense="true" Class="mb-4">Aucun technicien assigné pour le moment.</MudAlert>
                 }
-            </MudSelect>
-
-            <MudGrid Class="mt-4">
-                <MudItem xs="8">
-                    <MudNumericField T="decimal" Label="Taux (DA)" @bind-Value="_tauxHoraire" Required="true" Variant="Variant.Outlined" Min="0" Adornment="Adornment.End" AdornmentText="DA" />
-                </MudItem>
-                <MudItem xs="4">
-                    <MudSelect T="LaborUnit" Label="Unité" @bind-Value="_unit" Variant="Variant.Outlined">
-                        @foreach (LaborUnit unit in Enum.GetValues(typeof(LaborUnit)))
+                else
+                {
+                    <MudList T="InterventionRole" Dense="true" Class="mb-4">
+                        @foreach (var role in Dt.Intervenants)
                         {
-                            <MudSelectItem Value="@unit">@unit.ToString()</MudSelectItem>
+                            <MudListItem T="InterventionRole">
+                                <div class="d-flex align-center justify-space-between w-100">
+                                    <div class="d-flex align-center">
+                                        <MudAvatar Color="Color.Primary" Size="Size.Small" Class="mr-3">@role.Intervenant?.FullName?[0]</MudAvatar>
+                                        <div>
+                                            <MudText Typo="Typo.body2">@role.Intervenant?.FullName</MudText>
+                                            <MudText Typo="Typo.caption" Color="Color.Secondary">@role.Qualification</MudText>
+                                        </div>
+                                    </div>
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => RemoveTechnician(role))" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudDivider Class="my-4" />
+                <MudText Typo="Typo.subtitle1" Class="font-weight-bold mb-2">Ajouter un Technicien :</MudText>
+                <div class="d-flex align-end gap-4">
+                    <MudSelect T="User" Label="Sélectionner un technicien" Value="_selectedTechnicien" ValueChanged="OnTechnicianChanged" Variant="Variant.Outlined" Dense="true">
+                        @foreach (var tech in _availableTechnicians)
+                        {
+                            <MudSelectItem Value="@tech">@tech.FullName (@(tech.WorkingProfile?.Name ?? tech.Role))</MudSelectItem>
                         }
                     </MudSelect>
-                </MudItem>
-            </MudGrid>
-        </MudForm>
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="AddTechnician" Disabled="@(_selectedTechnicien == null)">Ajouter</MudButton>
+                </div>
+            </MudItem>
+
+            <MudItem xs="12">
+                <MudDivider Class="my-4" />
+                <MudForm @ref="_form">
+                    <MudTextField T="string" Label="Travail à effectuer (défini par BM)" @bind-Value="Dt.TravailDemande" 
+                                   Lines="3" Variant="Variant.Outlined" Required="true" />
+                    <MudTextField T="string" Label="Instructions de Préparation" @bind-Value="Dt.InstructionsPreparation" 
+                                   Lines="2" Variant="Variant.Outlined" Class="mt-4" />
+                </MudForm>
+            </MudItem>
+        </MudGrid>
     </DialogContent>
     <DialogActions>
         <MudButton OnClick="Cancel">Annuler</MudButton>
-        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Lancer l'Ordre de Travail (OT)</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">Enregistrer & Lancer OT</MudButton>
     </DialogActions>
 </MudDialog>
 
@@ -49,29 +78,68 @@
     [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public DemandeTravail Dt { get; set; } = default!;
     
-    private List<User> _techniciens = new();
+    private List<User> _allTechnicians = new();
+    private List<User> _availableTechnicians => _allTechnicians
+        .Where(t => Dt.Intervenants == null || !Dt.Intervenants.Any(r => r.IntervenantId == t.Id))
+        .ToList();
+
     private User? _selectedTechnicien;
-    private decimal _tauxHoraire = 500;
-    private LaborUnit _unit = LaborUnit.Heure;
-    
     private MudForm _form = default!;
-    private bool _success;
 
     protected override async Task OnInitializedAsync()
     {
+        // Reload DT to ensure we have fresh intervenants
+        var fullDt = await DtService.GetByIdAsync(Dt.Id);
+        if (fullDt != null) Dt = fullDt;
+
         var allUsers = await AuthService.GetAllUsersAsync();
-        // Ensure we have profiles for rates
-        _techniciens = allUsers.Where(u => u.Role == AppRoles.Executant || u.Role == AppRoles.DSI).ToList();
+        _allTechnicians = allUsers.Where(u => u.Role == AppRoles.Executant || u.Role == AppRoles.DSI).ToList();
     }
 
     private void OnTechnicianChanged(User user)
     {
         _selectedTechnicien = user;
-        if (user != null)
+    }
+
+    private async Task AddTechnician()
+    {
+        if (_selectedTechnicien == null) return;
+
+        try
         {
-            // Set rate from profile if available
-            _tauxHoraire = user.WorkingProfile?.HourlyRate ?? 500;
-            _unit = user.WorkingProfile?.Unit ?? LaborUnit.Heure;
+            var rate = _selectedTechnicien.TauxHoraire > 0 ? _selectedTechnicien.TauxHoraire : 500;
+            var unit = LaborUnit.Heure; // Default to hours since we removed unit from profile
+
+            await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position, rate, unit);
+            
+            // Refresh local list
+            var fullDt = await DtService.GetByIdAsync(Dt.Id);
+            if (fullDt != null) Dt = fullDt;
+            
+            _selectedTechnicien = null;
+            Snackbar.Add("Technicien ajouté", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
+        }
+    }
+
+    private async Task RemoveTechnician(InterventionRole role)
+    {
+        try
+        {
+            await DtService.RemoveIntervenantAsync(role.Id);
+            
+            // Refresh local list
+            var fullDt = await DtService.GetByIdAsync(Dt.Id);
+            if (fullDt != null) Dt = fullDt;
+            
+            Snackbar.Add("Technicien retiré", Severity.Info);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur: {ex.Message}", Severity.Error);
         }
     }
 
@@ -80,17 +148,20 @@
     private async Task Submit()
     {
         await _form.Validate();
-        if (_form.IsValid && _selectedTechnicien != null)
+        if (_form.IsValid)
         {
             try
             {
-                // Add as intervenant (assignment)
-                await DtService.AddIntervenantAsync(Dt.Id, _selectedTechnicien.Id, 0, _selectedTechnicien.Position, _tauxHoraire, _unit);
-                
-                // Update status to EnCours
-                await DtService.UpdateStatusAsync(Dt.Id, StatutDT.EnCours);
+                // Update work description and instructions
+                await DtService.UpdateAsync(Dt);
 
-                Snackbar.Add($"DT assignée à {_selectedTechnicien.FullName}", Severity.Success);
+                // Update status to EnCours if it was EnAttente and we have technicians
+                if (Dt.Statut == StatutDT.EnAttente && Dt.Intervenants != null && Dt.Intervenants.Any())
+                {
+                    await DtService.UpdateStatusAsync(Dt.Id, StatutDT.EnCours);
+                }
+
+                Snackbar.Add("Modifications enregistrées", Severity.Success);
                 MudDialog.Close(DialogResult.Ok(true));
             }
             catch (Exception ex)

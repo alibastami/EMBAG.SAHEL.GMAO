@@ -21,10 +21,7 @@
         {
             <MudButton Variant="Variant.Filled" Color="Color.Warning" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.AddCircle" Class="mr-2">1. Émettre Demande (DI)</MudButton>
         }
-        @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.BM || _userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI)
-        {
-            <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="@(() => NavManager.NavigateTo("/demandes"))" StartIcon="@Icons.Material.Filled.AssignmentInd" Class="mr-2">2. Gérer les OT</MudButton>
-        }
+
         @if (_userRole == Sahel.GMAO.Core.Constants.AppRoles.Executant)
         {
             <MudSwitch T="bool" Value="_mineOnly" ValueChanged="OnMineOnlyChanged" Color="Color.Primary" Label="Mes Tâches Uniquement" />
@@ -49,22 +46,20 @@
                 <StatusBadge Statut="@context.Item.Statut" />
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
             <CellTemplate>
-                <MudTooltip Text="Voir détails">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Description" Color="Color.Primary" OnClick="@(() => ViewDetails(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Voir PDF (Nouvel onglet)">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Visibility" Color="Color.Secondary" OnClick="@(() => ViewPdf(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Télécharger PDF">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.FileDownload" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
-                </MudTooltip>
-                @if (context.Item.Statut == StatutDT.EnAttente && _userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI)
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Description" Color="Color.Primary" OnClick="@(() => ViewDetails(context.Item))">
+                    Détails
+                </MudButton>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Secondary" OnClick="@(() => ViewPdf(context.Item))">
+                    Aperçu
+                </MudButton>
+                @if ((context.Item.Statut == StatutDT.EnAttente || context.Item.Statut == StatutDT.EnCours) && 
+                    (_userRole == Sahel.GMAO.Core.Constants.AppRoles.DSI || _userRole == Sahel.GMAO.Core.Constants.AppRoles.BM))
                 {
-                    <MudTooltip Text="Assigner">
-                        <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.PersonAdd" Color="Color.Info" OnClick="@(() => OpenAssignDialog(context.Item))" />
-                    </MudTooltip>
+                    <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.GroupAdd" Color="Color.Success" OnClick="@(() => OpenAssignDialog(context.Item))">
+                        Assigner
+                    </MudButton>
                 }
             </CellTemplate>
         </TemplateColumn>
@@ -79,6 +74,7 @@
     private string _searchString = "";
     private string _userRole = "";
     private string _username = "";
+    private bool _mineOnly = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,8 +85,6 @@
         
         await LoadData();
     }
-
-    private bool _mineOnly = false;
 
     private async Task LoadData()
     {
@@ -138,17 +132,6 @@
         }
     }
 
-    private async Task DownloadPdf(DemandeTravail dt)
-    {
-        // Fetch full DT details to ensure Consommables, Intervenants, and Pointages are loaded for the PDF
-        var fullDt = await DtService.GetByIdAsync(dt.Id);
-        if (fullDt == null) return;
-
-        var pdfBytes = await PdfService.GenerateDtPdfAsync(fullDt);
-        var fileName = $"{fullDt.NumeroDT}.pdf";
-        using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
-        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
-    }
 
     private async Task ViewPdf(DemandeTravail dt)
     {

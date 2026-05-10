@@ -49,3 +49,35 @@ h1:focus {
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
+
+/* Sidebar menu styles */
+.mud-nav-menu .mud-nav-link {
+    font-weight: 700 !important; /* Bold (thick) */
+    color: #000000 !important; /* Pure black font */
+}
+
+.mud-nav-menu .mud-nav-link-text {
+    font-weight: 700 !important;
+    color: #000000 !important;
+}
+
+.mud-nav-menu .mud-nav-link-icon {
+    color: #000000 !important; /* Make icons black too for consistency */
+}
+
+/* Group titles in menu */
+.mud-nav-menu .mud-nav-group .mud-nav-group-text {
+    font-weight: 700 !important;
+    color: #000000 !important;
+}
+
+/* Ensure data grid action column doesn't wrap */
+.flex-nowrap {
+    white-space: nowrap !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+}
+
+.mud-table-cell .mud-button {
+    white-space: nowrap !important;
+}

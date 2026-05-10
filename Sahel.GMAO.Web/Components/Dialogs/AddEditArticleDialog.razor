@@ -4,12 +4,12 @@
 <MudDialog>
     <TitleContent>
         <MudText Typo="Typo.h6">
-            <MudIcon Icon="@(IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add)" Class="mr-3 mb-n1" />
-            @(IsEdit ? "Modifier l'Article" : "Nouvel Article PDR")
+            <MudIcon Icon="@(ReadOnly ? Icons.Material.Filled.Info : (IsEdit ? Icons.Material.Filled.Edit : Icons.Material.Filled.Add))" Class="mr-3 mb-n1" />
+            @(ReadOnly ? "Détails de l'Article" : (IsEdit ? "Modifier l'Article" : "Nouvel Article PDR"))
         </MudText>
     </TitleContent>
     <DialogContent>
-        <MudForm @ref="_form" @bind-IsValid="@_success">
+        <MudForm @ref="_form" @bind-IsValid="@_success" ReadOnly="@ReadOnly">
             <MudGrid>
                 <MudItem xs="12" md="6">
                     <MudTextField T="string" Label="Code Article" @bind-Value="Article.CodeArticle" Required="true" RequiredError="Le code est requis" Variant="Variant.Outlined" />
@@ -36,8 +36,11 @@
         </MudForm>
     </DialogContent>
     <DialogActions>
-        <MudButton OnClick="Cancel">Annuler</MudButton>
-        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Enregistrer</MudButton>
+        <MudButton OnClick="Cancel">@(ReadOnly ? "Fermer" : "Annuler")</MudButton>
+        @if (!ReadOnly)
+        {
+            <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Enregistrer</MudButton>
+        }
     </DialogActions>
 </MudDialog>
 
@@ -45,6 +48,7 @@
     [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
     [Parameter] public ArticlePdr Article { get; set; } = new();
     [Parameter] public bool IsEdit { get; set; }
+    [Parameter] public bool ReadOnly { get; set; }
 
     private MudForm _form = default!;
     private bool _success;

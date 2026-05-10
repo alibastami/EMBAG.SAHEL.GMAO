@@ -20,4 +20,6 @@ public class TacheEntretien
     
     public string? Observation { get; set; }
     public string? SuiteADonner { get; set; }
+    public string? Consigne { get; set; }    // For Inspection Périodique (DOC 11)
+    public string? ValeurMesuree { get; set; } // Measured value for inspection (DOC 11)
 }

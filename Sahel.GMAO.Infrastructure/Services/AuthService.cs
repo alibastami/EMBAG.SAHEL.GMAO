@@ -69,6 +69,7 @@ public class AuthService : IAuthService
             existing.CanManageUsers = user.CanManageUsers;
             existing.CanViewAudit = user.CanViewAudit;
             existing.CanEditInventory = user.CanEditInventory;
+            existing.TauxHoraire = user.TauxHoraire;
 
             if (!string.IsNullOrWhiteSpace(newPassword))
             {

@@ -30,6 +30,11 @@ public class GmaoDbContext : DbContext
     public DbSet<InterventionLog> InterventionLogs { get; set; }
     public DbSet<WorkingProfile> WorkingProfiles { get; set; }
     public DbSet<AppSetting> AppSettings { get; set; }
+    
+    // New Entities for Document Generators
+    public DbSet<QuestionnaireArretTechnique> QuestionnairesArretTechnique { get; set; }
+    public DbSet<LigneAnomalie> LignesAnomalie { get; set; }
+    public DbSet<SuiviTempsMarcheHebdomadaire> SuivisTempsMarche { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,12 +49,12 @@ public class GmaoDbContext : DbContext
                 .WithMany(p => p.Users)
                 .HasForeignKey(u => u.WorkingProfileId)
                 .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.TauxHoraire).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<WorkingProfile>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.HourlyRate).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<Equipement>(entity =>
@@ -264,6 +269,40 @@ public class GmaoDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Key).IsUnique();
+        });
+
+        // Questionnaire Arrêt Technique Configuration
+        modelBuilder.Entity<QuestionnaireArretTechnique>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.NumeroQuestionnaire).IsUnique();
+
+            entity.HasOne(q => q.Equipement)
+                .WithMany()
+                .HasForeignKey(q => q.EquipementId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<LigneAnomalie>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(l => l.Questionnaire)
+                .WithMany(q => q.Anomalies)
+                .HasForeignKey(l => l.QuestionnaireId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Suivi Temps Marche Configuration
+        modelBuilder.Entity<SuiviTempsMarcheHebdomadaire>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(s => s.Equipement)
+                .WithMany()
+                .HasForeignKey(s => s.EquipementId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // An equipment has exactly one record per Year/Month/Week combination
+            entity.HasIndex(s => new { s.EquipementId, s.Annee, s.Mois, s.Semaine }).IsUnique();
         });
     }
 }

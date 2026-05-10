@@ -112,7 +112,14 @@ public class CustomAuthenticationStateProvider : AuthenticationStateProvider
 
     public async Task MarkUserAsLoggedOut()
     {
-        await _localStorage.DeleteAsync(UserSessionKey);
+        try 
+        {
+            await _localStorage.DeleteAsync(UserSessionKey);
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "[Auth] Could not delete session from local storage during logout (circuit may have disconnected).");
+        }
         _currentUser = new ClaimsPrincipal(new ClaimsIdentity());
         NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(_currentUser)));
     }

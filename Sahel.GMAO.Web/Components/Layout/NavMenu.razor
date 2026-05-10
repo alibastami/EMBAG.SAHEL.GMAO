@@ -2,74 +2,139 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager NavManager
 
-<MudNavMenu>
+<div class="d-flex align-center ml-4" style="overflow-x: auto; white-space: nowrap; -ms-overflow-style: none; scrollbar-width: none;">
+    <style>
+        .d-flex::-webkit-scrollbar { display: none; }
+    </style>
     <AuthorizeView>
         <Authorized>
-            @if (context.User.IsInRole(AppRoles.DSI))
+            @if (context.User.IsInRole(AppRoles.DSI) || context.User.IsInRole(AppRoles.BM))
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Primary" Class="ml-4 mt-3 mb-1">ADMINISTRATION (DSI)</MudText>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Assignment">Toutes les DI / OT</MudNavLink>
-                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Parc Équipements</MudNavLink>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Dashboard" Color="@GetActiveColor("/")" Href="/" Style="@GetActiveStyle("/")" Class="nav-button">Tableau de Bord</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Assignment" Color="@GetActiveColor("/demandes")" Href="/demandes" Style="@GetActiveStyle("/demandes")" Class="nav-button">DI / OT</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.PrecisionManufacturing" Color="@GetActiveColor("/equipements")" Href="/equipements" Style="@GetActiveStyle("/equipements")" Class="nav-button">Équipements</MudButton>
                 
-                <MudNavGroup Title="Planning" Icon="@Icons.Material.Filled.Event" Expanded="false">
-                    <MudNavLink Href="/planning/preventif" Icon="@Icons.Material.Filled.CalendarMonth">Prévisionnel</MudNavLink>
-                    <MudNavLink Href="/fiches-entretien" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Exécution Fiches</MudNavLink>
-                    <MudNavLink Href="/planning/visites" Icon="@Icons.Material.Filled.FactCheck">Visites Périodique</MudNavLink>
-                </MudNavGroup>
+                <MudMenu Label="Planning" StartIcon="@Icons.Material.Filled.Event" EndIcon="@Icons.Material.Filled.KeyboardArrowDown" Color="@GetPlanningColor()" Variant="Variant.Text" AnchorOrigin="Origin.BottomLeft" TransformOrigin="Origin.TopLeft" Style="@GetPlanningStyle()" Class="nav-button">
+                    <MudMenuItem Icon="@Icons.Material.Filled.CalendarMonth" href="/planning/preventif">Prévisionnel</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.AssignmentTurnedIn" href="/fiches-entretien">Exécution Fiches</MudMenuItem>
+                    <MudMenuItem Icon="@Icons.Material.Filled.FactCheck" href="/planning/visites">Visites Périodique</MudMenuItem>
+                </MudMenu>
                 
-                <MudNavLink Href="/stock" Icon="@Icons.Material.Filled.Inventory">Stock PDR</MudNavLink>
-                <MudNavLink Href="/fabrication" Icon="@Icons.Material.Filled.Build">Fabrication</MudNavLink>
+                @if (!context.User.IsInRole(AppRoles.BM))
+                {
+                    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Inventory" Color="@GetActiveColor("/stock")" Href="/stock" Style="@GetActiveStyle("/stock")" Class="nav-button">Stock PDR</MudButton>
+                }
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Build" Color="@GetActiveColor("/fabrication")" Href="/fabrication" Style="@GetActiveStyle("/fabrication")" Class="nav-button">Fabrication</MudButton>
                 
-                <MudDivider Class="my-2" />
-                <MudNavLink Href="/utilisateurs" Icon="@Icons.Material.Filled.People">Utilisateurs</MudNavLink>
-                <MudNavLink Href="/parametres" Icon="@Icons.Material.Filled.Settings">Paramètres</MudNavLink>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.People" Color="@GetActiveColor("/utilisateurs")" Href="/utilisateurs" Style="@GetActiveStyle("/utilisateurs")" Class="nav-button">Utilisateurs</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Settings" Color="@GetActiveColor("/parametres")" Href="/parametres" Style="@GetActiveStyle("/parametres")" Class="nav-button">Paramètres</MudButton>
+            }
+            else if (context.User.IsInRole(AppRoles.Magazin))
+            {
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Dashboard" Color="@GetActiveColor("/")" Href="/" Style="@GetActiveStyle("/")" Class="nav-button">Tableau de Bord</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Inventory" Color="@GetActiveColor("/stock")" Href="/stock" Style="@GetActiveStyle("/stock")" Class="nav-button">Stock PDR</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.PrecisionManufacturing" Color="@GetActiveColor("/equipements")" Href="/equipements" Style="@GetActiveStyle("/equipements")" Class="nav-button">Équipements</MudButton>
             }
             else if (context.User.IsInRole(AppRoles.Demandeur))
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Warning" Class="ml-4 mt-3 mb-1">UNITÉ PRODUCTION</MudText>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.AddCircle" IconColor="Color.Warning">1. Émettre Demande (DI)</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.History">2. Suivi mes DI</MudNavLink>
-            }
-            else if (context.User.IsInRole(AppRoles.BM))
-            {
-                <MudText Typo="Typo.subtitle2" Color="Color.Success" Class="ml-4 mt-3 mb-1">BUREAU MÉTHODE (BM)</MudText>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">Tableau de Bord</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.Input" IconColor="Color.Success">1. Réceptionner DI</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.AssignmentTurnedIn" IconColor="Color.Success">2. Créer & Assigner OT</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success">3. Valider Interventions</MudNavLink>
-                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.Settings">Gestion Équipements</MudNavLink>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Dashboard" Color="@GetActiveColor("/")" Href="/" Style="@GetActiveStyle("/")" Class="nav-button">Tableau de Bord</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.AddCircle" Color="@GetActiveColor("/demandes")" Href="/demandes" Style="@GetActiveStyle("/demandes")" Class="nav-button">Émettre DI</MudButton>
             }
             else if (context.User.IsInRole(AppRoles.Executant))
             {
-                <MudText Typo="Typo.subtitle2" Color="Color.Error" Class="ml-4 mt-3 mb-1">EXÉCUTANT (MAINTENANCE)</MudText>
-                <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.PlaylistAddCheck">1. Mes Ordres de Travail (OT)</MudNavLink>
-                <MudNavLink Href="/demandes" Icon="@Icons.Material.Filled.History">2. Historique Interventions</MudNavLink>
-                <MudNavLink Href="/fiches-entretien" Icon="@Icons.Material.Filled.AssignmentTurnedIn">Fiches Entretien</MudNavLink>
-                <MudNavLink Href="/equipements" Icon="@Icons.Material.Filled.PrecisionManufacturing">Équipements</MudNavLink>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.Dashboard" Color="@GetActiveColor("/")" Href="/" Style="@GetActiveStyle("/")" Class="nav-button">Mes OT</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.History" Color="@GetActiveColor("/demandes")" Href="/demandes" Style="@GetActiveStyle("/demandes")" Class="nav-button">Historique</MudButton>
+                <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.AssignmentTurnedIn" Color="@GetActiveColor("/fiches-entretien")" Href="/fiches-entretien" Style="@GetActiveStyle("/fiches-entretien")" Class="nav-button">Fiches</MudButton>
             }
-            
-            @{
-                var isDSI = context.User.IsInRole(AppRoles.DSI);
-                var isExecutant = context.User.IsInRole(AppRoles.Executant);
-                var isDemandeur = context.User.IsInRole(AppRoles.Demandeur);
-                var isBM = context.User.IsInRole(AppRoles.BM);
 
-                if (!isDSI && !isExecutant && !isDemandeur && !isBM)
-                {
-                    <MudAlert Severity="Severity.Warning" Dense="true" Class="mx-4 my-2">
-                        Rôle inconnu. <MudLink Color="Color.Inherit" Underline="Underline.Always" OnClick="Logout">Déconnectez-vous</MudLink>
-                    </MudAlert>
-                }
-            }
-            
-            <MudNavLink Href="/notifications" Icon="@Icons.Material.Filled.Notifications">Notifications</MudNavLink>
+            <MudIconButton Icon="@Icons.Material.Filled.Notifications" Color="@GetActiveColor("/notifications")" href="/notifications" Class="nav-button ml-2" />
         </Authorized>
     </AuthorizeView>
-</MudNavMenu>
+</div>
+
+<style>
+    .nav-button {
+        color: white !important;
+        text-transform: none;
+        font-weight: 500;
+        border-radius: 0;
+        height: 64px;
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+    
+    .nav-button:hover {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+</style>
+
+@implements IDisposable
 
 @code {
+    protected override void OnInitialized()
+    {
+        NavManager.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= HandleLocationChanged;
+    }
+
+    private bool IsActive(string href)
+    {
+        try
+        {
+            var currentUri = new Uri(NavManager.Uri).AbsolutePath.ToLower().TrimEnd('/');
+            var targetUri = NavManager.ToAbsoluteUri(href).AbsolutePath.ToLower().TrimEnd('/');
+            var baseUri = new Uri(NavManager.BaseUri).AbsolutePath.ToLower().TrimEnd('/');
+
+            if (targetUri == baseUri)
+            {
+                return currentUri == baseUri || currentUri.EndsWith("/index");
+            }
+
+            return currentUri == targetUri || currentUri.StartsWith(targetUri + "/");
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private Color GetActiveColor(string href)
+    {
+        return IsActive(href) ? Color.Secondary : Color.Inherit;
+    }
+
+    private string GetActiveStyle(string href)
+    {
+        return IsActive(href) 
+            ? "border-bottom: 4px solid #FFB300; background-color: rgba(255, 255, 255, 0.05);" 
+            : "";
+    }
+
+    private Color GetPlanningColor()
+    {
+        var path = NavManager.ToBaseRelativePath(NavManager.Uri).ToLower();
+        if (path.Contains("planning") || path.Contains("fiches-entretien"))
+            return Color.Secondary;
+        return Color.Inherit;
+    }
+
+    private string GetPlanningStyle()
+    {
+        var path = NavManager.ToBaseRelativePath(NavManager.Uri).ToLower();
+        if (path.Contains("planning") || path.Contains("fiches-entretien"))
+            return "border-bottom: 4px solid #FFB300; background-color: rgba(255, 255, 255, 0.05);";
+        return "";
+    }
+
     private async Task Logout()
     {
         var provider = (Sahel.GMAO.Web.Auth.CustomAuthenticationStateProvider)AuthStateProvider;

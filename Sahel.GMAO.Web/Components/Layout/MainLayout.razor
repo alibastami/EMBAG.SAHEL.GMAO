@@ -9,8 +9,10 @@
 
 <MudLayout>
     <MudAppBar Elevation="1" Color="Color.Primary">
-        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())" />
         <MudText Typo="Typo.h6" Class="ml-3 font-weight-bold">SAHEL GMAO</MudText>
+        
+        <NavMenu />
+        
         <MudSpacer />
         
         <AuthorizeView>
@@ -30,10 +32,6 @@
         </AuthorizeView>
     </MudAppBar>
     
-    <MudDrawer @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    
     <MudMainContent Class="d-flex flex-column" Style="min-height: 100vh;">
         <div class="flex-grow-1">
             <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="my-4 pt-4">
@@ -44,12 +42,22 @@
     <AppFooter />
 </MudLayout>
 
-@code {
-    private bool _drawerOpen = true;
+@implements IDisposable
 
-    private void DrawerToggle()
+@code {
+    protected override void OnInitialized()
     {
-        _drawerOpen = !_drawerOpen;
+        NavManager.LocationChanged += HandleLocationChanged;
+    }
+
+    private void HandleLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        NavManager.LocationChanged -= HandleLocationChanged;
     }
 
     private MudTheme _theme = new MudTheme()
@@ -61,9 +69,9 @@
             Background = "#F5F5F5",
             Surface = "#FFFFFF",
             DrawerBackground = "#FFFFFF",
-            DrawerText = "#1B5E20",
+            DrawerText = "#000000",
             PrimaryContrastText = "#FFFFFF",
-            Secondary = "#FFD600" // Yellow accent
+            Secondary = "#FFB300" // More visible Amber/Gold accent
         }
     };
 

@@ -4,74 +4,18 @@
 @using Sahel.GMAO.Web.Components.Dialogs
 @using Microsoft.EntityFrameworkCore
 @using Sahel.GMAO.Infrastructure.Data
-@inject INatureTravailService NatureService
-@inject IWorkingProfileService ProfileService
+
 @inject IBackupService BackupService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
 @inject IJSRuntime JS
 @inject IEquipementService EquipementService
 @inject IDbContextFactory<GmaoDbContext> DbFactory
-@attribute [Authorize(Roles = "DSI")]
+@attribute [Authorize(Roles = "DSI,BM")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Configuration du Système</MudText>
 
 <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
-    <MudTabPanel Text="Natures de Travail" Icon="@Icons.Material.Filled.Category">
-        <MudDataGrid Items="@_natures" Hover="true" Loading="@_loadingNatures">
-            <ToolBarContent>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNature" Class="mr-4">
-                    Ajouter une Nature
-                </MudButton>
-                <MudSpacer />
-            </ToolBarContent>
-            <Columns>
-                <PropertyColumn Property="x => x.Nom" Title="Nom" />
-                <PropertyColumn Property="x => x.Description" Title="Description" />
-                <TemplateColumn CellClass="d-flex justify-end">
-                    <CellTemplate>
-                        <MudTooltip Text="Modifier">
-                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditNature(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Supprimer">
-                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteNature(context.Item))" />
-                        </MudTooltip>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-    </MudTabPanel>
-    
-    <MudTabPanel Text="Profils de Travail" Icon="@Icons.Material.Filled.Badge">
-        <MudDataGrid Items="@_profiles" Hover="true" Loading="@_loadingProfiles">
-            <ToolBarContent>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddProfile" Class="mr-4">
-                    Ajouter un Profil
-                </MudButton>
-                <MudSpacer />
-            </ToolBarContent>
-            <Columns>
-                <PropertyColumn Property="x => x.Name" Title="Nom du Profil" />
-                <PropertyColumn Property="x => x.Specialite" Title="Spécialité" />
-                <PropertyColumn Property="x => x.HourlyRate" Title="Taux Horaire (DA/H)">
-                    <CellTemplate>
-                        @context.Item.HourlyRate.ToString("N2") DA
-                    </CellTemplate>
-                </PropertyColumn>
-                <TemplateColumn CellClass="d-flex justify-end">
-                    <CellTemplate>
-                        <MudTooltip Text="Modifier">
-                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditProfile(context.Item))" />
-                        </MudTooltip>
-                        <MudTooltip Text="Supprimer">
-                            <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteProfile(context.Item))" />
-                        </MudTooltip>
-                    </CellTemplate>
-                </TemplateColumn>
-            </Columns>
-        </MudDataGrid>
-    </MudTabPanel>
-
     <MudTabPanel Text="Général" Icon="@Icons.Material.Filled.Settings">
         <MudText Typo="Typo.h6" Class="mb-4">Informations sur l'application</MudText>
         <MudPaper Class="pa-4">
@@ -205,10 +149,7 @@
 </MudTabs>
 
 @code {
-    private List<WorkingProfile> _profiles = new();
-    private bool _loadingProfiles = true;
-    private List<NatureTravail> _natures = new();
-    private bool _loadingNatures = true;
+
     private bool _isBackingUp = false;
     private bool _isExporting = false;
     private bool _isRestoring = false;
@@ -218,8 +159,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadNatures();
-        await LoadProfiles();
+
         await LoadSettings();
     }
 
@@ -264,144 +204,7 @@
         }
     }
 
-    private async Task LoadProfiles()
-    {
-        _loadingProfiles = true;
-        _profiles = await ProfileService.GetAllAsync();
-        _loadingProfiles = false;
-    }
 
-    private async Task OnAddProfile()
-    {
-        var parameters = new DialogParameters<WorkingProfileDialog>
-        {
-            { x => x.Profile, new WorkingProfile() },
-            { x => x.IsEdit, false }
-        };
-
-        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Nouveau Profil", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            var profile = (WorkingProfile)result.Data!;
-            await ProfileService.CreateAsync(profile);
-            Snackbar.Add("Profil de travail créé", Severity.Success);
-            await LoadProfiles();
-        }
-    }
-
-    private async Task OnEditProfile(WorkingProfile profile)
-    {
-        var profileClone = new WorkingProfile
-        {
-            Id = profile.Id,
-            Name = profile.Name,
-            HourlyRate = profile.HourlyRate,
-            Specialite = profile.Specialite
-        };
-
-        var parameters = new DialogParameters<WorkingProfileDialog>
-        {
-            { x => x.Profile, profileClone },
-            { x => x.IsEdit, true }
-        };
-
-        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Modifier le Profil", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            var updatedProfile = (WorkingProfile)result.Data!;
-            await ProfileService.UpdateAsync(updatedProfile);
-            Snackbar.Add("Profil de travail mis à jour", Severity.Success);
-            await LoadProfiles();
-        }
-    }
-
-    private async Task OnDeleteProfile(WorkingProfile profile)
-    {
-        var result = await DialogService.ShowMessageBox(
-            "Suppression",
-            $"Voulez-vous vraiment supprimer le profil '{profile.Name}' ?",
-            yesText: "Supprimer", cancelText: "Annuler");
-
-        if (result == true)
-        {
-            await ProfileService.DeleteAsync(profile.Id);
-            Snackbar.Add("Profil de travail supprimé", Severity.Success);
-            await LoadProfiles();
-        }
-    }
-
-    private async Task LoadNatures()
-    {
-        _loadingNatures = true;
-        _natures = await NatureService.GetAllAsync();
-        _loadingNatures = false;
-    }
-
-    private async Task OnAddNature()
-    {
-        var parameters = new DialogParameters<NatureTravailDialog>
-        {
-            { x => x.Nature, new NatureTravail() },
-            { x => x.IsEdit, false }
-        };
-
-        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Nouvelle Nature", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            var nature = (NatureTravail)result.Data!;
-            await NatureService.CreateAsync(nature);
-            Snackbar.Add("Nature de travail créée", Severity.Success);
-            await LoadNatures();
-        }
-    }
-
-    private async Task OnEditNature(NatureTravail nature)
-    {
-        var natureClone = new NatureTravail
-        {
-            Id = nature.Id,
-            Nom = nature.Nom,
-            Description = nature.Description
-        };
-
-        var parameters = new DialogParameters<NatureTravailDialog>
-        {
-            { x => x.Nature, natureClone },
-            { x => x.IsEdit, true }
-        };
-
-        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Modifier la Nature", parameters);
-        var result = await dialog.Result;
-
-        if (result != null && !result.Canceled)
-        {
-            var updatedNature = (NatureTravail)result.Data!;
-            await NatureService.UpdateAsync(updatedNature);
-            Snackbar.Add("Nature de travail mise à jour", Severity.Success);
-            await LoadNatures();
-        }
-    }
-
-    private async Task OnDeleteNature(NatureTravail nature)
-    {
-        var result = await DialogService.ShowMessageBox(
-            "Suppression",
-            $"Voulez-vous vraiment supprimer la nature '{nature.Nom}' ?",
-            yesText: "Supprimer", cancelText: "Annuler");
-
-        if (result == true)
-        {
-            await NatureService.DeleteAsync(nature.Id);
-            Snackbar.Add("Nature de travail supprimée", Severity.Success);
-            await LoadNatures();
-        }
-    }
 
     private async Task OnCreateBackup()
     {

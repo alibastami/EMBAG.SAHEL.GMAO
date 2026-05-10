@@ -25,6 +25,7 @@ public class User
     public virtual WorkingProfile? WorkingProfile { get; set; }
 
     public string Position { get; set; } = string.Empty;
+    public decimal TauxHoraire { get; set; } = 0;
 
     // Privileges
     public bool CanManageUsers { get; set; } = false;

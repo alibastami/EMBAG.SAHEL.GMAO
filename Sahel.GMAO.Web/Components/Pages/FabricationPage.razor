@@ -5,7 +5,10 @@
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
 @inject NavigationManager NavManager
-@attribute [Authorize(Roles = "DSI")]
+@inject ISnackbar Snackbar
+@inject IEquipementService EquipementService
+@inject IDialogService DialogService
+@attribute [Authorize(Roles = "DSI,BM")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Demandes de Fabrication</MudText>
 
@@ -29,20 +32,18 @@
                 <MudChip T="string" Color="@GetStatutColor(context.Item.Statut)" Size="Size.Small">@context.Item.Statut</MudChip>
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
             <CellTemplate>
-                <MudTooltip Text="Voir détails">
-                    <MudIconButton Icon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Imprimer Bon de Fabrication">
-                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Changer Statut">
-                    <MudMenu Icon="@Icons.Material.Filled.MoreVert">
-                        <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.EnCours))">En Cours</MudMenuItem>
-                        <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.Terminee))">Terminée</MudMenuItem>
-                    </MudMenu>
-                </MudTooltip>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" OnClick="@(() => ViewDetails(context.Item))">
+                    Détails
+                </MudButton>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Info" OnClick="@(() => ViewPdf(context.Item))">
+                    Aperçu
+                </MudButton>
+                <MudMenu Icon="@Icons.Material.Filled.MoreVert" Label="Statut" Variant="Variant.Filled" Size="@Size.Small" Color="Color.Default" EndIcon="@Icons.Material.Filled.ArrowDropDown">
+                    <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.EnCours))">En Cours</MudMenuItem>
+                    <MudMenuItem OnClick="@(() => UpdateStatus(context.Item, StatutFabrication.Terminee))">Terminée</MudMenuItem>
+                </MudMenu>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -76,16 +77,28 @@
 
     private async Task OpenCreateDialog()
     {
-        // Simple mock for now, ideally a full dialog
+        // Fetch a valid equipment ID to avoid FK conflict for the initial shell
+        var equipments = await EquipementService.GetAllAsync();
+        var equipment = equipments.FirstOrDefault();
+        
+        if (equipment == null)
+        {
+            Snackbar.Add("Aucun équipement disponible pour créer une demande.", Severity.Error);
+            return;
+        }
+
         var newDf = new DemandeFabrication 
         { 
-            EquipementId = 1, // Placeholder
-            DesignationPiece = "Axe Turbine", 
+            NumeroFabrication = "TEMP", 
+            EquipementId = equipment.Id,
+            DesignationPiece = "Nouvelle Pièce", 
             Quantite = 1, 
-            DegreUrgenceImmediat = false 
+            DateEmission = DateTime.Now,
+            Statut = StatutFabrication.EnAttente
         };
-        await FabricationService.CreateAsync(newDf);
-        await LoadData();
+        
+        var created = await FabricationService.CreateAsync(newDf);
+        NavManager.NavigateTo($"/fabrication/{created.Id}");
     }
 
     private async Task UpdateStatus(DemandeFabrication df, StatutFabrication newStatus)
@@ -94,12 +107,11 @@
         await LoadData();
     }
 
-    private async Task DownloadPdf(DemandeFabrication df)
+    private async Task ViewPdf(DemandeFabrication df)
     {
         var pdfBytes = await PdfService.GenerateFabricationPdfAsync(df);
-        var fileName = $"FAB_{df.NumeroFabrication}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
-        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
     }
 
     private void ViewDetails(DemandeFabrication df)

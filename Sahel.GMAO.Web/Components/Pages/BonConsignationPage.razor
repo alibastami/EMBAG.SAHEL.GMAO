@@ -9,7 +9,7 @@
 @inject IJSRuntime JSRuntime
 @inject IPdfService PdfService
 @inject AuthenticationStateProvider AuthStateProvider
-@attribute [Authorize(Roles = "DSI, Executant")]
+@attribute [Authorize(Roles = "DSI,BM,Executant")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Bons de Consignation</MudText>
 
@@ -41,20 +41,20 @@
                 }
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
             <CellTemplate>
-                <MudTooltip Text="Imprimer Bon (PDF)">
-                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
-                </MudTooltip>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Info" OnClick="@(() => ViewPdf(context.Item))">
+                    Aperçu
+                </MudButton>
                 @if (!context.Item.DateHeureDeconsignation.HasValue)
                 {
-                    <MudTooltip Text="Déconsigner">
-                        <MudIconButton Icon="@Icons.Material.Filled.LockOpen" Color="Color.Warning" OnClick="@(() => Deconsigner(context.Item))" />
-                    </MudTooltip>
+                    <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.LockOpen" Color="Color.Warning" OnClick="@(() => Deconsigner(context.Item))">
+                        Déconsigner
+                    </MudButton>
                 }
-                <MudTooltip Text="Supprimer">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteBon(context.Item))" />
-                </MudTooltip>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteBon(context.Item))">
+                    Supprimer
+                </MudButton>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -121,11 +121,9 @@
         }
     }
 
-    private async Task DownloadPdf(BonDeConsignation bon)
+    private async Task ViewPdf(BonDeConsignation bon)
     {
-        // This will need the IPdfService update
-        Snackbar.Add("Génération du PDF en cours...", Severity.Info);
-        // var pdfBytes = await PdfService.GenerateConsignationPdfAsync(bon);
-        // ...
+        Snackbar.Add("Ouverture de l'aperçu PDF...", Severity.Info);
+        // Implementation will follow when GenerateConsignationPdfAsync is ready
     }
 }

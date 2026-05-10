@@ -22,11 +22,11 @@
                         </MudText>
                     </CellTemplate>
                 </PropertyColumn>
-                <TemplateColumn CellClass="d-flex justify-end">
+                <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
                     <CellTemplate>
-                        <MudTooltip Text="Valider Réalisation">
-                            <MudIconButton Icon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" OnClick="@(() => ValiderRealisation(context.Item))" />
-                        </MudTooltip>
+                    <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.CheckCircle" Color="Color.Success" OnClick="@(() => ValiderRealisation(context.Item))">
+                    Valider
+                </MudButton>
                     </CellTemplate>
                 </TemplateColumn>
             </Columns>

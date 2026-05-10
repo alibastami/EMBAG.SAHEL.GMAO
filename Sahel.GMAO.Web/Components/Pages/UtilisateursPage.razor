@@ -1,52 +1,123 @@
 @page "/utilisateurs"
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Constants
 @using Sahel.GMAO.Web.Components.Dialogs
 @inject IAuthService AuthService
+@inject INatureTravailService NatureService
+@inject IWorkingProfileService ProfileService
 @inject IDialogService DialogService
 @inject ISnackbar Snackbar
-@attribute [Authorize(Roles = "DSI")]
+@inject AuthenticationStateProvider AuthStateProvider
+@attribute [Authorize(Roles = "DSI,BM")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Utilisateurs</MudText>
 
-<MudDataGrid Items="@_users" Hover="true" Loading="@_loading" Filterable="true" QuickFilter="@_quickFilter">
-    <ToolBarContent>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddUser" Class="mr-4">
-            Nouvel Utilisateur
-        </MudButton>
-        <MudSpacer />
-        <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
-                      AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-    </ToolBarContent>
-    <Columns>
-        <PropertyColumn Property="x => x.Username" Title="Identifiant" />
-        <PropertyColumn Property="x => x.FullName" Title="Nom Complet" />
-        <PropertyColumn Property="x => x.Role" Title="Rôle" />
-        <PropertyColumn Property="x => x.Position" Title="Poste / Qualification" />
-        <TemplateColumn CellClass="d-flex justify-end">
-            <CellTemplate>
-                <MudTooltip Text="Modifier">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OnEditUser(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Supprimer">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteUser(context.Item))" />
-                </MudTooltip>
-            </CellTemplate>
-        </TemplateColumn>
-    </Columns>
-    <PagerContent>
-        <MudDataGridPager T="User" />
-    </PagerContent>
-</MudDataGrid>
+<MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="pa-6">
+    <MudTabPanel Text="Utilisateurs" Icon="@Icons.Material.Filled.People">
+        <MudDataGrid Items="@_users" Hover="true" Loading="@_loading" Filterable="true" QuickFilter="@_quickFilter">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddUser" Class="mr-4">
+                    Nouvel Utilisateur
+                </MudButton>
+                <MudSpacer />
+                <MudTextField @bind-Value="_searchString" Placeholder="Rechercher..." Adornment="Adornment.Start" Immediate="true"
+                              AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Username" Title="Identifiant" />
+                <PropertyColumn Property="x => x.FullName" Title="Nom Complet" />
+                <PropertyColumn Property="x => x.Role" Title="Rôle" />
+                <PropertyColumn Property="x => x.Position" Title="Poste / Qualification" />
+                <PropertyColumn Property='x => x.WorkingProfile != null ? x.WorkingProfile.Name : "-"' Title="Profil" />
+                <PropertyColumn Property="x => x.TauxHoraire" Title="Coût (DA/H)">
+                    <CellTemplate>
+                        @context.Item.TauxHoraire.ToString("N2") DA
+                    </CellTemplate>
+                </PropertyColumn>
+                <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
+                    <CellTemplate>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OnEditUser(context.Item))">
+                            Modifier
+                        </MudButton>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteUser(context.Item))">
+                            Supprimer
+                        </MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+            <PagerContent>
+                <MudDataGridPager T="User" />
+            </PagerContent>
+        </MudDataGrid>
+    </MudTabPanel>
+
+    <MudTabPanel Text="Natures de Travail" Icon="@Icons.Material.Filled.Category">
+        <MudDataGrid Items="@_natures" Hover="true" Loading="@_loadingNatures">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddNature" Class="mr-4">
+                    Ajouter une Nature
+                </MudButton>
+                <MudSpacer />
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Nom" Title="Nom" />
+                <PropertyColumn Property="x => x.Description" Title="Description" />
+                <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
+                    <CellTemplate>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OnEditNature(context.Item))">
+                            Modifier
+                        </MudButton>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteNature(context.Item))">
+                            Supprimer
+                        </MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+    
+    <MudTabPanel Text="Profils de Travail" Icon="@Icons.Material.Filled.Badge">
+        <MudDataGrid Items="@_profiles" Hover="true" Loading="@_loadingProfiles">
+            <ToolBarContent>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OnAddProfile" Class="mr-4">
+                    Ajouter un Profil
+                </MudButton>
+                <MudSpacer />
+            </ToolBarContent>
+            <Columns>
+                <PropertyColumn Property="x => x.Name" Title="Nom du Profil" />
+                <PropertyColumn Property="x => x.Specialite" Title="Spécialité" />
+                <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
+                    <CellTemplate>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OnEditProfile(context.Item))">
+                            Modifier
+                        </MudButton>
+                        <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => OnDeleteProfile(context.Item))">
+                            Supprimer
+                        </MudButton>
+                    </CellTemplate>
+                </TemplateColumn>
+            </Columns>
+        </MudDataGrid>
+    </MudTabPanel>
+</MudTabs>
 
 @code {
     private List<User> _users = new();
     private string _searchString = "";
     private bool _loading = true;
 
+    private List<WorkingProfile> _profiles = new();
+    private bool _loadingProfiles = true;
+    private List<NatureTravail> _natures = new();
+    private bool _loadingNatures = true;
+
     protected override async Task OnInitializedAsync()
     {
         await LoadData();
+        await LoadNatures();
+        await LoadProfiles();
     }
 
     private async Task LoadData()
@@ -95,6 +166,15 @@
 
     private async Task OnEditUser(User user)
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var isBM = authState.User.IsInRole(AppRoles.BM);
+        
+        if (isBM && user.Role == AppRoles.DSI)
+        {
+            Snackbar.Add("Accès refusé : Le Bureau Méthode ne peut pas modifier un profil DSI.", Severity.Error);
+            return;
+        }
+
         // Clone to avoid direct editing
         var userClone = new User
         {
@@ -105,6 +185,8 @@
             Position = user.Position,
             Specialite = user.Specialite,
             WorkingProfileId = user.WorkingProfileId,
+            WorkingProfile = user.WorkingProfile,
+            TauxHoraire = user.TauxHoraire,
             CanManageUsers = user.CanManageUsers,
             CanEditInventory = user.CanEditInventory,
             CanViewAudit = user.CanViewAudit
@@ -130,6 +212,15 @@
 
     private async Task OnDeleteUser(User user)
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var isBM = authState.User.IsInRole(AppRoles.BM);
+        
+        if (isBM && user.Role == AppRoles.DSI)
+        {
+            Snackbar.Add("Accès refusé : Le Bureau Méthode ne peut pas supprimer un profil DSI.", Severity.Error);
+            return;
+        }
+
         var result = await DialogService.ShowMessageBox(
             "Suppression",
             $"Voulez-vous vraiment supprimer l'utilisateur {user.Username} ?",
@@ -147,6 +238,144 @@
             {
                 Snackbar.Add($"Erreur lors de la suppression : {ex.Message}", Severity.Error);
             }
+        }
+    }
+
+    private async Task LoadProfiles()
+    {
+        _loadingProfiles = true;
+        _profiles = await ProfileService.GetAllAsync();
+        _loadingProfiles = false;
+    }
+
+    private async Task OnAddProfile()
+    {
+        var parameters = new DialogParameters<WorkingProfileDialog>
+        {
+            { x => x.Profile, new WorkingProfile() },
+            { x => x.IsEdit, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Nouveau Profil", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var profile = (WorkingProfile)result.Data!;
+            await ProfileService.CreateAsync(profile);
+            Snackbar.Add("Profil de travail créé", Severity.Success);
+            await LoadProfiles();
+        }
+    }
+
+    private async Task OnEditProfile(WorkingProfile profile)
+    {
+        var profileClone = new WorkingProfile
+        {
+            Id = profile.Id,
+            Name = profile.Name,
+            Specialite = profile.Specialite
+        };
+
+        var parameters = new DialogParameters<WorkingProfileDialog>
+        {
+            { x => x.Profile, profileClone },
+            { x => x.IsEdit, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<WorkingProfileDialog>("Modifier le Profil", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var updatedProfile = (WorkingProfile)result.Data!;
+            await ProfileService.UpdateAsync(updatedProfile);
+            Snackbar.Add("Profil de travail mis à jour", Severity.Success);
+            await LoadProfiles();
+        }
+    }
+
+    private async Task OnDeleteProfile(WorkingProfile profile)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer le profil '{profile.Name}' ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await ProfileService.DeleteAsync(profile.Id);
+            Snackbar.Add("Profil de travail supprimé", Severity.Success);
+            await LoadProfiles();
+        }
+    }
+
+    private async Task LoadNatures()
+    {
+        _loadingNatures = true;
+        _natures = await NatureService.GetAllAsync();
+        _loadingNatures = false;
+    }
+
+    private async Task OnAddNature()
+    {
+        var parameters = new DialogParameters<NatureTravailDialog>
+        {
+            { x => x.Nature, new NatureTravail() },
+            { x => x.IsEdit, false }
+        };
+
+        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Nouvelle Nature", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var nature = (NatureTravail)result.Data!;
+            await NatureService.CreateAsync(nature);
+            Snackbar.Add("Nature de travail créée", Severity.Success);
+            await LoadNatures();
+        }
+    }
+
+    private async Task OnEditNature(NatureTravail nature)
+    {
+        var natureClone = new NatureTravail
+        {
+            Id = nature.Id,
+            Nom = nature.Nom,
+            Description = nature.Description
+        };
+
+        var parameters = new DialogParameters<NatureTravailDialog>
+        {
+            { x => x.Nature, natureClone },
+            { x => x.IsEdit, true }
+        };
+
+        var dialog = await DialogService.ShowAsync<NatureTravailDialog>("Modifier la Nature", parameters);
+        var result = await dialog.Result;
+
+        if (result != null && !result.Canceled)
+        {
+            var updatedNature = (NatureTravail)result.Data!;
+            await NatureService.UpdateAsync(updatedNature);
+            Snackbar.Add("Nature de travail mise à jour", Severity.Success);
+            await LoadNatures();
+        }
+    }
+
+    private async Task OnDeleteNature(NatureTravail nature)
+    {
+        var result = await DialogService.ShowMessageBox(
+            "Suppression",
+            $"Voulez-vous vraiment supprimer la nature '{nature.Nom}' ?",
+            yesText: "Supprimer", cancelText: "Annuler");
+
+        if (result == true)
+        {
+            await NatureService.DeleteAsync(nature.Id);
+            Snackbar.Add("Nature de travail supprimée", Severity.Success);
+            await LoadNatures();
         }
     }
 }

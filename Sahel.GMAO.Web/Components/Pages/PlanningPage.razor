@@ -8,7 +8,7 @@
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 @inject IDialogService DialogService
-@attribute [Authorize(Roles = "DSI")]
+@attribute [Authorize(Roles = "DSI,BM")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Planning de Maintenance</MudText>
 
@@ -21,7 +21,7 @@
         </div>
         <MudSpacer />
         <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Add" Color="Color.Primary" OnClick="OpenCreateDialog" Class="mr-2">Nouvelle Opération</MudButton>
-        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.PictureAsPdf" Color="Color.Secondary" OnClick="DownloadPlanningPdf">Exporter Planning PDF</MudButton>
+        <MudButton Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Secondary" OnClick="ViewPlanningPdf">Aperçu Planning</MudButton>
     </div>
 </MudPaper>
 
@@ -44,8 +44,8 @@
                     <MudCardActions>
                         <MudButton Variant="Variant.Text" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Assignment" OnClick="@(() => GenerateFiche(item))">Lancer Fiche</MudButton>
                         <MudSpacer />
-                        <MudIconButton Icon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small" OnClick="@(() => OpenEditDialog(item))" />
-                        <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteOperation(item))" />
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Default" Size="Size.Small" OnClick="@(() => OpenEditDialog(item))" Class="mr-2">Modifier</MudButton>
+                        <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteOperation(item))">Supprimer</MudButton>
                     </MudCardActions>
                 </MudCard>
             </MudItem>
@@ -79,11 +79,24 @@
         return "#388E3C"; // Material Green
     }
 
-    private async Task DownloadPlanningPdf()
+    private async Task ViewPlanningPdf()
     {
-        // For planning, we might need a specific PDF method in IPdfService
-        // But for now, we can reuse history or state logic if applicable
-        // await PdfService.GeneratePlanningPdfAsync(_preventives);
+        try
+        {
+            if (!_preventives.Any())
+            {
+                Snackbar.Add("Aucun planning prévisionnel à imprimer.", Severity.Warning);
+                return;
+            }
+
+            var pdfBytes = await PdfService.GeneratePlanningPdfAsync(_preventives);
+            using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+            await JSRuntime.InvokeVoidAsync("downloadFileFromStream", "07_Planning_Entretien_Préventif_Ver01.pdf", streamRef);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Erreur PDF: {ex.Message}", Severity.Error);
+        }
     }
 
     private async Task GenerateFiche(MaintenancePreventive mp)
@@ -92,6 +105,11 @@
         {
             var fiche = await MaintenanceService.GenerateFicheFromScheduleAsync(mp.Id);
             Snackbar.Add($"Fiche {fiche.NumeroOT} générée avec succès", Severity.Success);
+            
+            // Auto-download or view the newly generated fiche
+            var pdfBytes = await PdfService.GenerateFicheEntretienPdfAsync(fiche);
+            using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
+            await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
         }
         catch (Exception ex)
         {

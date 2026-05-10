@@ -6,7 +6,7 @@
 @inject IJSRuntime JSRuntime
 @inject ISnackbar Snackbar
 @inject IPdfService PdfService
-@attribute [Authorize(Roles = "DSI, Executant")]
+@attribute [Authorize(Roles = "DSI,BM,Executant")]
 
 <div class="d-flex align-center mb-6">
     <MudText Typo="Typo.h4" Class="font-weight-bold" Color="Color.Primary">Fiches d'Entretien Préventif</MudText>
@@ -37,17 +37,17 @@
                 }
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
             <CellTemplate>
-                <MudTooltip Text="Exécuter / Modifier">
-                    <MudIconButton Icon="@Icons.Material.Filled.EditNote" Color="Color.Primary" OnClick="@(() => ExecuteFiche(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Imprimer (PDF)">
-                    <MudIconButton Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadPdf(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Supprimer">
-                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteFiche(context.Item))" />
-                </MudTooltip>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.EditNote" Color="Color.Primary" OnClick="@(() => ExecuteFiche(context.Item))">
+                    Exécuter
+                </MudButton>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Info" OnClick="@(() => ViewPdf(context.Item))">
+                    Aperçu
+                </MudButton>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteFiche(context.Item))">
+                    Supprimer
+                </MudButton>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -84,11 +84,16 @@
         }
     }
 
-    private async Task DownloadPdf(FicheEntretienPreventif fiche)
+    private async Task ViewPdf(FicheEntretienPreventif fiche)
     {
+        if (fiche.Taches == null || !fiche.Taches.Any())
+        {
+            Snackbar.Add($"La fiche {fiche.NumeroOT} ne contient aucune tâche. Le PDF n'a pas été généré.", Severity.Warning);
+            return;
+        }
+
         var pdfBytes = await PdfService.GenerateFicheEntretienPdfAsync(fiche);
-        var fileName = $"{fiche.NumeroOT}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
-        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
     }
 }

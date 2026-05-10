@@ -15,9 +15,9 @@ public static class DbInitializer
         if (!await context.WorkingProfiles.AnyAsync())
         {
             context.WorkingProfiles.AddRange(
-                new WorkingProfile { Name = "Mécanicien Senior", HourlyRate = 1200, Specialite = Specialite.Mecanique },
-                new WorkingProfile { Name = "Électricien Senior", HourlyRate = 1100, Specialite = Specialite.Electrique },
-                new WorkingProfile { Name = "Technicien Junior", HourlyRate = 800, Specialite = Specialite.Autre }
+                new WorkingProfile { Name = "Mécanicien Senior", Specialite = Specialite.Mecanique },
+                new WorkingProfile { Name = "Électricien Senior", Specialite = Specialite.Electrique },
+                new WorkingProfile { Name = "Technicien Junior", Specialite = Specialite.Autre }
             );
             await context.SaveChangesAsync();
         }
@@ -112,6 +112,22 @@ public static class DbInitializer
                 CanEditInventory = false
             };
             context.Users.Add(demandeur);
+        }
+
+        if (!await context.Users.AnyAsync(u => u.Username == "magasin"))
+        {
+            var magasinier = new User
+            {
+                Username = "magasin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Magasin@2026"),
+                FullName = "Responsable Magasin",
+                Role = AppRoles.Magazin,
+                Position = "Magasinier",
+                CanManageUsers = false,
+                CanViewAudit = false,
+                CanEditInventory = true
+            };
+            context.Users.Add(magasinier);
         }
 
         // 1.5 Migrate existing users with legacy roles
@@ -299,10 +315,16 @@ public static class DbInitializer
                     code = code.Replace(" ", "-");
                 }
 
-                // Avoid duplicates
-                if (!existingCodes.Contains(code) && !equipments.Any(e => e.Code == code))
+                // Update or Add
+                var existing = await context.Equipements.FirstOrDefaultAsync(e => e.Code == code);
+                if (existing != null)
                 {
-                    equipments.Add(new Equipement
+                    existing.Designation = designation;
+                    existing.Section = currentSection;
+                }
+                else
+                {
+                    context.Equipements.Add(new Equipement
                     {
                         Code = code,
                         Designation = designation,
@@ -311,17 +333,8 @@ public static class DbInitializer
                     });
                 }
             }
-
-            if (equipments.Any())
-            {
-                context.Equipements.AddRange(equipments);
-                await context.SaveChangesAsync();
-                Console.WriteLine($">>> GMAO: Successfully added {equipments.Count} new equipments.");
-            }
-            else
-            {
-                Console.WriteLine(">>> GMAO: No new equipments to add (all already exist).");
-            }
+            await context.SaveChangesAsync();
+            Console.WriteLine(">>> GMAO: Equipment seed/update complete.");
         }
         catch (Exception ex)
         {

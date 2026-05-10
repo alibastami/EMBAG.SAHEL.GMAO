@@ -38,12 +38,8 @@
                     </MudSelect>
                 </MudItem>
                 <MudItem xs="12">
-                    <MudTextField T="string" Label="Travail Demandé" @bind-Value="_dt.TravailDemande" 
-                                   Lines="3" Variant="Variant.Outlined" Required="true" RequiredError="La description du travail est requise" />
-                </MudItem>
-                <MudItem xs="12">
-                    <MudTextField T="string" Label="Instructions de Préparation" @bind-Value="_dt.InstructionsPreparation" 
-                                   Lines="2" Variant="Variant.Outlined" />
+                    <MudTextField T="string" Label="Description du problème" @bind-Value="_dt.TravailDemande" 
+                                   Lines="4" Variant="Variant.Outlined" Required="true" RequiredError="La description du problème est requise" />
                 </MudItem>
             </MudGrid>
         </MudForm>

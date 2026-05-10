@@ -146,14 +146,13 @@ public class PdfService : IPdfService
                         table.Cell().Border(1).Padding(1).Text("H.H").FontSize(8);
 
                         var intervenants = dt.Intervenants?.ToList() ?? new List<InterventionRole>();
-                        int rowsToDraw = Math.Max(7, intervenants.Count + 1);
                         
-                        for(int r = 0; r < rowsToDraw; r++)
+                        for(int r = 0; r < intervenants.Count; r++)
                         {
                             var inv = r < intervenants.Count ? intervenants[r] : null;
 
                             table.Cell().Border(1).Padding(1).Text(inv?.Intervenant?.FullName ?? "").FontSize(8);
-                            table.Cell().Border(1).Padding(1).Text(inv?.Qualification ?? "").FontSize(8);
+                            table.Cell().Border(1).Padding(1).AlignCenter().Text(AbbreviateQualification(inv?.Qualification ?? "")).FontSize(8);
                             
                             for(int i=1; i<=31; i++) {
                                 var pointage = inv?.Pointages?.FirstOrDefault(p => p.JourDuMois == i);
@@ -193,9 +192,8 @@ public class PdfService : IPdfService
                         drawHeader("PRIX UNITAIRE"); drawHeader("PRIX TOTAL"); drawHeader("OBSERVATION");
 
                         var consommables = dt.Consommables?.ToList() ?? new List<ConsommableUsage>();
-                        int piecesRows = Math.Max(8, consommables.Count + 1);
 
-                        for(int r=0; r<piecesRows; r++)
+                        for(int r=0; r < consommables.Count; r++)
                         {
                             var c = r < consommables.Count ? consommables[r] : null;
                             table.Cell().Border(1).Padding(2).Text(c?.N_BSM ?? "").FontSize(8);
@@ -239,13 +237,12 @@ public class PdfService : IPdfService
                         drawHeader("COUT HORAIRE"); drawHeader("TOTAL");
 
                         var intervenantsMO = dt.Intervenants?.ToList() ?? new List<InterventionRole>();
-                        int moRows = Math.Max(6, intervenantsMO.Count + 1);
 
-                        for(int r=0; r<moRows; r++)
+                        for(int r=0; r < intervenantsMO.Count; r++)
                         {
                             var inv = r < intervenantsMO.Count ? intervenantsMO[r] : null;
                             table.Cell().Border(1).Padding(2).Text(inv?.Intervenant?.FullName ?? "").FontSize(8);
-                            table.Cell().Border(1).Padding(2).Text(inv?.Qualification ?? "").FontSize(8);
+                            table.Cell().Border(1).Padding(2).AlignCenter().Text(AbbreviateQualification(inv?.Qualification ?? "")).FontSize(8);
                             table.Cell().Border(1).Padding(2).AlignCenter().Text(inv != null && inv.HeuresTravaillees > 0 ? inv.HeuresTravaillees.ToString() : "").FontSize(8);
                             table.Cell().Border(1).Padding(2).AlignCenter().Text(inv != null && inv.TauxHoraire > 0 ? inv.TauxHoraire.ToString("N2") : "").FontSize(8);
                             table.Cell().Border(1).Padding(2).AlignCenter().Text(inv != null && inv.HeuresTravaillees > 0 ? (inv.HeuresTravaillees * (double)inv.TauxHoraire).ToString("N2") : "").FontSize(8);
@@ -291,7 +288,34 @@ public class PdfService : IPdfService
         return document.GeneratePdf();
     }
 
+    private string AbbreviateQualification(string qualification)
+    {
+        if (string.IsNullOrWhiteSpace(qualification)) return "";
+
+        qualification = qualification.Trim().ToUpper();
+
+        if (qualification.Contains("TECHNICIEN")) return "TE";
+        if (qualification.Contains("ELECTRICIEN") || qualification.Contains("ÉLECTRICIEN")) return "EL";
+        if (qualification.Contains("MECANICIEN") || qualification.Contains("MÉCANICIEN")) return "ME";
+        if (qualification.Contains("SOUDEUR")) return "SO";
+        if (qualification.Contains("TOURNEUR")) return "TO";
+        if (qualification.Contains("AJUSTEUR")) return "AJ";
+        if (qualification.Contains("FRAISEUR")) return "FR";
+        if (qualification.Contains("MANOEUVRE") || qualification.Contains("MANŒUVRE")) return "MA";
+        if (qualification.Contains("CONTREMAITRE")) return "CM";
+        if (qualification.Contains("INGENIEUR")) return "IN";
+        if (qualification.Contains("AIDE")) return "AI";
+
+        if (qualification.Length <= 2) return qualification;
+        return qualification.Substring(0, 2);
+    }
+
     private void ComposeFormHeader(IContainer container)
+    {
+        ComposeFormHeader(container, "DEMANDE DE TRAVAIL", "01");
+    }
+
+    private void ComposeFormHeader(IContainer container, string docTitle, string docCode, string version = "01")
     {
         container.Border(1).BorderColor("#553C7B").Row(row =>
         {
@@ -306,13 +330,13 @@ public class PdfService : IPdfService
             });
             
             // Middle: Title
-            row.RelativeItem().PaddingTop(10).AlignCenter().Text("DEMANDE DE TRAVAIL").Bold().FontSize(12);
+            row.RelativeItem().PaddingTop(10).AlignCenter().Text(docTitle).Bold().FontSize(12);
 
             // Right Box: Versioning
             row.ConstantItem(100).BorderLeft(1).BorderColor("#553C7B").Padding(5).Column(col => 
             {
-                col.Item().AlignCenter().Text("IMP MAIN 01").Bold().FontSize(9);
-                col.Item().AlignCenter().Text("Version: 01").Bold().FontColor("#D81B60").FontSize(9);
+                col.Item().AlignCenter().Text($"IMP MAIN {docCode}").Bold().FontSize(9);
+                col.Item().AlignCenter().Text($"Version: {version}").Bold().FontColor("#D81B60").FontSize(9);
             });
         });
     }
@@ -412,17 +436,23 @@ public class PdfService : IPdfService
                             t.ColumnsDefinition(c => {
                                 c.ConstantColumn(40); // BSM
                                 c.RelativeColumn(3); // Matiere
+                                c.RelativeColumn(1); // Section
+                                c.RelativeColumn(1); // Longueur
                                 c.RelativeColumn(1); // Prix
                                 c.RelativeColumn(2); // Observation
                             });
                             t.Cell().Border(1).Text("N° BSM").FontSize(7).Bold();
                             t.Cell().Border(1).Text("Désignation").FontSize(7).Bold();
+                            t.Cell().Border(1).Text("Section").FontSize(7).Bold();
+                            t.Cell().Border(1).Text("Longueur").FontSize(7).Bold();
                             t.Cell().Border(1).Text("Prix (DA)").FontSize(7).Bold();
                             t.Cell().Border(1).Text("Observation").FontSize(7).Bold();
 
                             foreach(var m in df.MatieresConsommees) {
                                 t.Cell().Border(1).Text(m.N_BSM).FontSize(7);
                                 t.Cell().Border(1).Text(m.DesignationMatiere).FontSize(7);
+                                t.Cell().Border(1).Text(m.Section ?? "").FontSize(7);
+                                t.Cell().Border(1).Text(m.Longueur.ToString("N2") ?? "").FontSize(7);
                                 t.Cell().Border(1).Text(m.Prix.ToString("N2")).FontSize(7);
                                 t.Cell().Border(1).Text(m.Observation ?? "").FontSize(7);
                             }
@@ -444,9 +474,31 @@ public class PdfService : IPdfService
                             }
                         });
 
-                        table.Cell().Border(1).Padding(10).AlignRight().Column(c => {
-                            c.Item().Text($"COUT TOTAL DE L'OPERATION: {df.TotalCoutOperation:N2} DA").Bold().FontSize(10);
-                            c.Item().PaddingTop(10).Text("Visa préparation").FontSize(8);
+                        table.Cell().Border(1).Row(r => {
+                            r.RelativeItem(2).Padding(2).Column(c => {
+                                c.Item().Text("Remarques :.................................................................................................................................").FontSize(8);
+                                c.Item().Text("............................................................................................................................................").FontSize(8);
+                            });
+                            r.RelativeItem(1).BorderLeft(1).Padding(2).Column(c => {
+                                c.Item().Text("Visa préparation").FontSize(8).Bold();
+                                c.Item().Text("Date....................").FontSize(8);
+                                c.Item().Text("Nom : .................").FontSize(8);
+                                c.Item().Text("Visa :").FontSize(8);
+                            });
+                            r.RelativeItem(1).BorderLeft(1).Padding(2).Column(c => {
+                                c.Item().Text($"COUT TOTAL DE L'OPERATION:").FontSize(8).Bold();
+                                c.Item().AlignCenter().PaddingTop(5).Text($"{df.TotalCoutOperation:N2} DA").Bold().FontSize(10).Underline();
+                            });
+                        });
+                        
+                        table.Cell().Border(1).Row(r => {
+                            r.RelativeItem(2).Padding(2).Text("");
+                            r.RelativeItem(2).BorderLeft(1).Padding(2).Column(c => {
+                                c.Item().Text("Visa comptabilité analytique").FontSize(8).Bold();
+                                c.Item().Text("Date....................").FontSize(8);
+                                c.Item().Text("Nom : .................").FontSize(8);
+                                c.Item().Text("Visa :").FontSize(8);
+                            });
                         });
                     });
                 });
@@ -465,7 +517,7 @@ public class PdfService : IPdfService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.Header().Element(ComposeFormHeader);
+                page.Header().Element(c => ComposeFormHeader(c, "BON DE CONSIGNATION ET DECONSIGNATION", "04"));
 
                 page.Content().PaddingTop(20).Column(column =>
                 {
@@ -537,7 +589,7 @@ public class PdfService : IPdfService
             {
                 page.Size(PageSizes.A4);
                 page.Margin(1, Unit.Centimetre);
-                page.Header().Element(ComposeFormHeader);
+                page.Header().Element(c => ComposeFormHeader(c, "FICHE D'ENTRETIEN PREVENTIF PERIODIQUE", "03"));
 
                 page.Content().PaddingTop(10).Column(column =>
                 {
@@ -548,12 +600,12 @@ public class PdfService : IPdfService
                         table.Cell().Border(1).Row(row => {
                             row.RelativeItem().Padding(2).Column(c => {
                                 c.Item().Text($"N° OT: {fiche.NumeroOT}");
+                                c.Item().Text($"PARTIE: {fiche.Partie}");
                                 c.Item().Text($"SECTION: {fiche.Section}");
-                                c.Item().Text($"PERIODICITE: {fiche.Periodicite}");
                             });
                             row.RelativeItem().BorderLeft(1).Padding(2).Column(c => {
                                 c.Item().Text($"CODE: {fiche.Equipement?.Code}");
-                                c.Item().Text($"PARTIE: {fiche.Partie}");
+                                c.Item().Text($"PERIODICITE: {fiche.Periodicite}");
                                 c.Item().Text($"EQUIPEMENT: {fiche.Equipement?.Designation}");
                             });
                         });
@@ -567,6 +619,7 @@ public class PdfService : IPdfService
                                 c.ConstantColumn(40); // Temps Prévu
                                 c.ConstantColumn(40); // Temps Réalisé
                                 c.RelativeColumn(2); // Obs
+                                c.RelativeColumn(2); // Suite à donner (8th col)
                             });
                             t.Cell().Border(1).AlignCenter().Text("Pos").FontSize(7).Bold();
                             t.Cell().Border(1).Text("Organes").FontSize(7).Bold();
@@ -575,6 +628,7 @@ public class PdfService : IPdfService
                             t.Cell().Border(1).AlignCenter().Text("T. Prévu").FontSize(7).Bold();
                             t.Cell().Border(1).AlignCenter().Text("T. Réal").FontSize(7).Bold();
                             t.Cell().Border(1).Text("Observation").FontSize(7).Bold();
+                            t.Cell().Border(1).Text("Suite à donner").FontSize(7).Bold();
 
                             foreach(var item in fiche.Taches) {
                                 t.Cell().Border(1).AlignCenter().Text(item.Position.ToString()).FontSize(7);
@@ -584,6 +638,7 @@ public class PdfService : IPdfService
                                 t.Cell().Border(1).AlignCenter().Text(item.TempsPrevuHeures.ToString()).FontSize(7);
                                 t.Cell().Border(1).AlignCenter().Text(item.TempsRealiseHeures.ToString()).FontSize(7);
                                 t.Cell().Border(1).Text(item.Observation ?? "").FontSize(7);
+                                t.Cell().Border(1).Text(item.SuiteADonner ?? "").FontSize(7);
                             }
                         });
 
@@ -603,42 +658,115 @@ public class PdfService : IPdfService
         {
             container.Page(page =>
             {
+                // Template is explicitly landscape
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(1, Unit.Centimetre);
-                page.Header().Element(c => ComposeHeader(c, "FICHE HISTORIQUE D'ÉQUIPEMENT", equipement.Code));
+                
+                // Add the new global header standard (we will implement this across all in Phase 4)
+                page.Header().Element(c => ComposeFormHeader(c, "FICHE HISTORIQUE EQUIPEMENT", "02"));
 
-                page.Content().PaddingVertical(10).Column(column =>
+                page.Content().PaddingTop(15).Column(column =>
                 {
-                    column.Item().Text($"{equipement.Designation} ({equipement.Section})").FontSize(12).Bold();
+                    // Upper section info: Equipement, Code, Fait le
+                    column.Item().PaddingBottom(10).Row(row =>
+                    {
+                        row.RelativeItem(2).Text(t =>
+                        {
+                            t.Span("Equipement : ").Bold();
+                            t.Span($"{equipement.Designation}");
+                        });
+                        row.RelativeItem(1).Text(t =>
+                        {
+                            t.Span("Code : ").Bold();
+                            t.Span($"{equipement.Code}");
+                        });
+                        row.RelativeItem(1).AlignRight().Text(t =>
+                        {
+                            t.Span("Fait le : ").Bold();
+                            t.Span($"{DateTime.Now:dd/MM/yyyy}");
+                        });
+                    });
+
                     column.Item().Table(table =>
                     {
+                        // Match exactly the 11 columns of DOC 02
                         table.ColumnsDefinition(cols =>
                         {
-                            cols.RelativeColumn(1.5f);
-                            cols.RelativeColumn(1.5f);
-                            cols.RelativeColumn(4);
-                            cols.RelativeColumn(1.5f);
-                            cols.RelativeColumn(1.5f);
+                            cols.ConstantColumn(50);  // N° OT
+                            cols.ConstantColumn(40);  // Temps marche
+                            cols.RelativeColumn();    // Travaux/Causes
+                            cols.ConstantColumn(40);  // Tps Interv
+                            cols.ConstantColumn(90);  // PDR Designation
+                            cols.ConstantColumn(60);  // PDR Reference
+                            cols.ConstantColumn(60);  // PDR Code
+                            cols.ConstantColumn(50);  // Cout PDR
+                            cols.ConstantColumn(50);  // Cout MO
+                            cols.ConstantColumn(60);  // Cout Oper
+                            cols.ConstantColumn(60);  // Date Interv
                         });
 
-                        table.Header(header =>
-                        {
-                            header.Cell().Element(TableHeader).Text("N° DT");
-                            header.Cell().Element(TableHeader).Text("Date");
-                            header.Cell().Element(TableHeader).Text("Intervention");
-                            header.Cell().Element(TableHeader).Text("Statut");
-                            header.Cell().Element(TableHeader).Text("Coût Total");
-                        });
+                        Action<string> drawHeader = (text) => table.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text(text).FontSize(8).Bold();
 
-                        foreach (var dt in interventions)
+                        // Header Row 1 (Top headers spanning cells)
+                        table.Cell().RowSpan(2).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().AlignMiddle().Text("N° OT").FontSize(8).Bold();
+                        table.Cell().RowSpan(2).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().AlignMiddle().Text("Temps\nmarche").FontSize(8).Bold();
+                        table.Cell().RowSpan(2).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().AlignMiddle().Text("Travaux effectués\net causes de la panne").FontSize(8).Bold();
+                        table.Cell().RowSpan(2).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().AlignMiddle().Text("Tps\nInterv.").FontSize(8).Bold();
+                        
+                        table.Cell().ColumnSpan(3).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Consommation PDR et Consommable").FontSize(8).Bold();
+                        
+                        table.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Coût").FontSize(8).Bold();
+                        table.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Coût").FontSize(8).Bold();
+                        table.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text("Coût").FontSize(8).Bold();
+                        table.Cell().RowSpan(2).Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().AlignMiddle().Text("Date\nInterv.").FontSize(8).Bold();
+
+                        // Header Row 2 (Sub-headers for PDR and Costs)
+                        drawHeader("Désignation");
+                        drawHeader("Référence");
+                        drawHeader("Code");
+                        drawHeader("PDR");
+                        drawHeader("M.O");
+                        drawHeader("Opér.");
+
+                        Action<string> drawCell = (text) => table.Cell().Border(1).Padding(2).AlignCenter().AlignMiddle().Text(text).FontSize(7);
+                        Action<string> drawLeftCell = (text) => table.Cell().Border(1).Padding(2).AlignLeft().AlignMiddle().Text(text).FontSize(7);
+
+                        foreach (var dt in interventions.OrderByDescending(d => d.DateEmission))
                         {
-                            table.Cell().Element(TableCell).Text(dt.NumeroDT);
-                            table.Cell().Element(TableCell).Text(dt.DateEmission.ToString("dd/MM/yyyy"));
-                            table.Cell().Element(TableCell).Text(dt.TravailDemande);
-                            table.Cell().Element(TableCell).Text(dt.Statut.ToString());
-                            table.Cell().Element(TableCell).Text($"{dt.TotalCoutOperation:N2} DZD");
+                            // Each DT can span multiple rows if it has multiple PDRs. We join PDRs with line breaks or show 1 row if none.
+                            var pdrs = dt.Consommables?.ToList() ?? new List<ConsommableUsage>();
+                            string pdrsDesignation = pdrs.Any() ? string.Join("\n", pdrs.Select(p => p.ArticlePdr?.Designation)) : "-";
+                            string pdrsReference = pdrs.Any() ? string.Join("\n", pdrs.Select(p => p.ArticlePdr?.ReferenceConstructeur ?? "-")) : "-";
+                            string pdrsCode = pdrs.Any() ? string.Join("\n", pdrs.Select(p => p.ArticlePdr?.CodeArticle)) : "-";
+
+                            // Total intervention time
+                            double tpsInterv = dt.Intervenants?.Sum(i => i.HeuresTravaillees) ?? 0;
+
+                            drawCell(dt.NumeroDT);
+                            drawCell(dt.TempsDeMarcheHeures?.ToString() ?? "-");
+                            
+                            // Travaux et Causes
+                            string travaux = $"Travaux: {dt.TravailExecute ?? "-"}\nPanne: {dt.TravailDemande ?? "-"}";
+                            drawLeftCell(travaux);
+                            
+                            drawCell(tpsInterv > 0 ? tpsInterv.ToString() : "-");
+                            
+                            // PDRs
+                            drawLeftCell(pdrsDesignation);
+                            drawCell(pdrsReference);
+                            drawCell(pdrsCode);
+
+                            // Costs
+                            drawCell(dt.TotalCoutPieces > 0 ? dt.TotalCoutPieces.ToString("N2") : "-");
+                            drawCell(dt.TotalCoutMainOeuvre > 0 ? dt.TotalCoutMainOeuvre.ToString("N2") : "-");
+                            drawCell(dt.TotalCoutOperation > 0 ? dt.TotalCoutOperation.ToString("N2") : "-");
+
+                            // Date
+                            drawCell(dt.DateExecutionFin.HasValue ? dt.DateExecutionFin.Value.ToString("dd/MM/yyyy") : dt.DateEmission.ToString("dd/MM/yyyy"));
                         }
                     });
+                    
+                    column.Item().PaddingTop(20).AlignRight().Text("Visa : ...................................").Bold();
                 });
 
                 page.Footer().Element(ComposeFooter);
@@ -689,6 +817,114 @@ public class PdfService : IPdfService
         });
         return document.GeneratePdf();
     }
+
+    public async Task<byte[]> GeneratePlanningPdfAsync(List<MaintenancePreventive> preventives)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(1, Unit.Centimetre);
+                page.Header().Element(c => ComposeFormHeader(c, "PLANNING D'ENTRETIEN PREVENTIF PERIODIQUE", "07"));
+
+                page.Content().PaddingVertical(10).Column(column =>
+                {
+                    var grouped = preventives
+                        .Where(p => p.IsActive)
+                        .OrderBy(p => p.DateProchaineEcheance)
+                        .GroupBy(p => new DateTime(p.DateProchaineEcheance.Year, p.DateProchaineEcheance.Month, 1));
+
+                    foreach (var monthGroup in grouped)
+                    {
+                        column.Item().PaddingTop(10).PaddingBottom(5).Text($"MOIS: {monthGroup.Key.ToString("MMMM yyyy").ToUpper()}").Bold().FontSize(10);
+                        
+                        column.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(cols =>
+                            {
+                                cols.ConstantColumn(40); // Jour
+                                cols.ConstantColumn(80); // Code
+                                cols.RelativeColumn();   // Operation
+                                cols.ConstantColumn(100); // Section
+                            });
+
+                            Action<string> drawHeader = (text) => table.Cell().Border(1).Background(Colors.Grey.Lighten3).Padding(2).AlignCenter().Text(text).FontSize(8).Bold();
+
+                            drawHeader("Date");
+                            drawHeader("Code");
+                            drawHeader("Opération");
+                            drawHeader("Section");
+
+                            Action<string> drawCell = (text) => table.Cell().Border(1).Padding(2).Text(text).FontSize(8);
+                            Action<string> drawCenterCell = (text) => table.Cell().Border(1).Padding(2).AlignCenter().Text(text).FontSize(8);
+
+                            foreach (var item in monthGroup.OrderBy(i => i.DateProchaineEcheance))
+                            {
+                                drawCenterCell(item.DateProchaineEcheance.ToString("dd/MM"));
+                                drawCell(item.Equipement?.Code ?? "");
+                                drawCell(item.Operation);
+                                drawCell(item.Equipement?.Section ?? "");
+                            }
+                        });
+                    }
+                });
+
+                page.Footer().Element(ComposeFooter);
+            });
+        });
+
+        return document.GeneratePdf();
+    }
+
+    #region New Document Stubs (Phase 3)
+
+    public async Task<byte[]> GenerateQuestionnaireArretPdfAsync(QuestionnaireArretTechnique q)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 06
+    }
+
+    public async Task<byte[]> GeneratePlanningEntretienPreventifPdfAsync(List<Equipement> equipements, List<MaintenancePreventive> plannings, int annee)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 07
+    }
+
+    public async Task<byte[]> GenerateSuiviTempsMarchePdfAsync(Equipement eq, List<SuiviTempsMarcheHebdomadaire> suivi, int[] annees)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 08
+    }
+
+    public async Task<byte[]> GenerateHeuresMachinesPdfAsync(List<Equipement> equipements, List<SuiviTempsMarcheHebdomadaire> suivi, int annee)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 09
+    }
+
+    public async Task<byte[]> GeneratePlanningVisitePeriodiquePdfAsync(List<Equipement> equipements, List<MaintenancePreventive> plannings, int annee)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 10
+    }
+
+    public async Task<byte[]> GenerateFicheInspectionPdfAsync(FicheEntretienPreventif fiche)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 11
+    }
+
+    public async Task<byte[]> GenerateTravauxNonProgrammesPdfAsync(DemandeTravail dt)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 12
+    }
+
+    public async Task<byte[]> GenerateTravauxProgrammesPdfAsync(FicheEntretienPreventif fiche)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 13
+    }
+
+    public async Task<byte[]> GenerateRapportCirconstancielPdfAsync(RapportIncident rapport)
+    {
+        return Array.Empty<byte>(); // TODO: Implement DOC 14
+    }
+
+    #endregion
 
     #region Helpers
 

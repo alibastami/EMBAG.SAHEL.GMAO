@@ -14,8 +14,10 @@ public class ConsommableUsage
     public virtual ArticlePdr ArticlePdr { get; set; } = null!;
 
     public double Quantite { get; set; }
+    public double? QuantitePrevue { get; set; } // Planned quantity (for Travaux Programmés DOC 13)
     public decimal PrixUnitaireApplique { get; set; } // Historical price at time of use
     
     public string? N_BSM { get; set; }
     public string? Observation { get; set; }
+    public string? CauseNonExecution { get; set; } // Reason for non-execution (for Travaux Programmés DOC 13)
 }

@@ -231,9 +231,9 @@ public class DtService : IDtService
             if (tauxHoraire == null)
             {
                 // Try to get from user profile
-                var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == userId);
-                tauxHoraire = user?.WorkingProfile?.HourlyRate ?? 500;
-                unit ??= user?.WorkingProfile?.Unit ?? LaborUnit.Heure;
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                tauxHoraire = (user != null && user.TauxHoraire > 0) ? user.TauxHoraire : 500;
+                unit ??= LaborUnit.Heure;
             }
 
             unit ??= LaborUnit.Heure;
@@ -286,9 +286,9 @@ public class DtService : IDtService
             var role = dt.Intervenants.FirstOrDefault(r => r.IntervenantId == log.IntervenantId);
             if (role == null)
             {
-                var user = await context.Users.Include(u => u.WorkingProfile).FirstOrDefaultAsync(u => u.Id == log.IntervenantId);
-                var rate = user?.WorkingProfile?.HourlyRate ?? 500;
-                var unit = user?.WorkingProfile?.Unit ?? LaborUnit.Heure;
+                var user = await context.Users.FirstOrDefaultAsync(u => u.Id == log.IntervenantId);
+                var rate = (user != null && user.TauxHoraire > 0) ? user.TauxHoraire : 500;
+                var unit = LaborUnit.Heure;
 
                 role = new InterventionRole
                 {
@@ -332,6 +332,26 @@ public class DtService : IDtService
         }
     }
 
+    public async Task RemoveIntervenantAsync(int roleId)
+    {
+        using var context = await _factory.CreateDbContextAsync();
+        var role = await context.InterventionRoles.FindAsync(roleId);
+        if (role != null)
+        {
+            // Optional: Recalculate DT totals if needed
+            var dt = await context.DemandesTravail.FindAsync(role.DemandeTravailId);
+            if (dt != null)
+            {
+                var rate = role.Unit == LaborUnit.Heure ? role.TauxHoraire : role.TauxHoraire / 8;
+                dt.TotalCoutMainOeuvre -= (decimal)role.HeuresTravaillees * rate;
+                dt.TotalCoutOperation = dt.TotalCoutPieces + dt.TotalCoutMainOeuvre;
+            }
+
+            context.InterventionRoles.Remove(role);
+            await context.SaveChangesAsync();
+        }
+    }
+
     public async Task<DashboardStats> GetDashboardStatsAsync()
     {
         using var context = await _factory.CreateDbContextAsync();
@@ -359,8 +379,8 @@ public class DtService : IDtService
             MonthlyActivities = new List<MonthlyActivity>()
         };
 
-        // Last 6 months for chart
-        for (int i = 5; i >= 0; i--)
+        // Last 12 months for chart
+        for (int i = 11; i >= 0; i--)
         {
             var date = now.AddMonths(-i);
             var monthStart = new DateTime(date.Year, date.Month, 1);

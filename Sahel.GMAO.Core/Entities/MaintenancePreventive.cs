@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Sahel.GMAO.Core.Enums;
 
 namespace Sahel.GMAO.Core.Entities;
 
@@ -21,5 +22,6 @@ public class MaintenancePreventive
     [Required]
     public bool IsActive { get; set; } = true;
 
+    public FrequenceEntretien? FrequenceType { get; set; } // Hour-threshold type (200H,600H,1200H,2400H) for DOC 07
     public string? ConsignesParticulieres { get; set; }
 }

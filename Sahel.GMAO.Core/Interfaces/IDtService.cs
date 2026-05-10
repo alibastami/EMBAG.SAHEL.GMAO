@@ -19,5 +19,6 @@ public interface IDtService
     Task AddConsommableAsync(int dtId, int articleId, double quantite, decimal? prixUnitaire = null, string? nBsm = null, string? observation = null);
     Task AddIntervenantAsync(int dtId, int userId, double heures, string qualification, decimal? tauxHoraire = null, LaborUnit? unit = null);
     Task AddInterventionLogAsync(InterventionLog log);
+    Task RemoveIntervenantAsync(int roleId);
     Task<DashboardStats> GetDashboardStatsAsync();
 }

@@ -1,0 +1,69 @@
+@using Sahel.GMAO.Core.Entities
+@using Sahel.GMAO.Core.Interfaces
+@inject IEquipementService EquipementService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <TitleContent>
+        <MudText Typo="Typo.h6">
+            <MudIcon Icon="@Icons.Material.Filled.Build" Class="mr-3 mb-n1" />
+            Nouvelle Demande de Fabrication
+        </MudText>
+    </TitleContent>
+    <DialogContent>
+        <MudForm @ref="_form" @bind-IsValid="@_success">
+            <MudGrid>
+                <MudItem xs="12">
+                    <MudSelect T="int" Label="Équipement" @bind-Value="Fabrication.EquipementId" Required="true" RequiredError="L'équipement est requis" Variant="Variant.Outlined">
+                        @foreach (var eq in _equipements)
+                        {
+                            <MudSelectItem T="int" Value="@eq.Id">@eq.Code - @eq.Designation</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="8">
+                    <MudTextField T="string" Label="Désignation de la pièce" @bind-Value="Fabrication.DesignationPiece" Required="true" RequiredError="La désignation est requise" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="4">
+                    <MudNumericField T="double" Label="Quantité" @bind-Value="Fabrication.Quantite" Min="1" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6">
+                    <MudTextField T="string" Label="Référence Pièce" @bind-Value="Fabrication.ReferencePiece" Variant="Variant.Outlined" />
+                </MudItem>
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudSwitch T="bool" @bind-Value="Fabrication.DegreUrgenceImmediat" Label="Urgence Immédiate" Color="Color.Error" />
+                </MudItem>
+            </MudGrid>
+        </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Annuler</MudButton>
+        <MudButton Color="Color.Primary" Variant="Variant.Filled" OnClick="Submit" Disabled="@(!_success)">Créer la Demande</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = null!;
+
+    [Parameter] public DemandeFabrication Fabrication { get; set; } = new();
+
+    private bool _success;
+    private MudForm _form = null!;
+    private List<Equipement> _equipements = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _equipements = await EquipementService.GetAllAsync();
+        if (Fabrication.EquipementId == 0 && _equipements.Any())
+        {
+            Fabrication.EquipementId = _equipements.First().Id;
+        }
+    }
+
+    void Cancel() => MudDialog.Cancel();
+
+    void Submit()
+    {
+        MudDialog.Close(DialogResult.Ok(Fabrication));
+    }
+}

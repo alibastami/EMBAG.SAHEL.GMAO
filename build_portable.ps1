@@ -8,7 +8,7 @@ $ProjectPath = Join-Path $ProjectRoot "Sahel.GMAO.Web\Sahel.GMAO.Web.csproj"
 $OutDir = Join-Path $ProjectRoot "Dist"
 $BuildDir = Join-Path $ProjectRoot "Sahel.GMAO.Web\bin\Release\net8.0\win-x64"
 $PublishDir = Join-Path $BuildDir "publish"
-$ObfuscarExe = "$env:USERPROFILE\.nuget\packages\obfuscar\2.2.50\tools\Obfuscar.Console.exe"
+$ObfuscarExe = "obfuscar.console"
 
 # Cleanup
 Write-Host "Cleaning up Dist and Build folders..." -ForegroundColor Cyan
@@ -26,8 +26,8 @@ if ($LASTEXITCODE -ne 0) { Write-Error "Build failed!"; exit $LASTEXITCODE }
 
 # 3. Obfuscate
 Write-Host "Applying obfuscation..." -ForegroundColor Cyan
-if (-not (Test-Path $ObfuscarExe)) {
-    Write-Error "Obfuscar not found at $ObfuscarExe. Please install it via NuGet."
+if (-not (Get-Command $ObfuscarExe -ErrorAction SilentlyContinue)) {
+    Write-Error "Obfuscar not found. Please install it via NuGet (dotnet tool install --global Obfuscar.GlobalTool)."
     exit 1
 }
 
@@ -64,6 +64,13 @@ if (Test-Path $PublishDir) {
 
     # Ensure Logs folder exists
     New-Item -ItemType Directory -Path (Join-Path $FinalDir "Logs") -Force | Out-Null
+    
+    # Copy Assets
+    Write-Host "Copying assets (listmachine.txt, Word templates)..." -ForegroundColor Cyan
+    Copy-Item -Path (Join-Path $ProjectRoot "listmachine.txt") -Destination $FinalDir -Force
+    if (Test-Path (Join-Path $ProjectRoot "SAHEL_GMAO_WORD")) {
+        Copy-Item -Path (Join-Path $ProjectRoot "SAHEL_GMAO_WORD") -Destination $FinalDir -Recurse -Force
+    }
     
     Write-Host "`n====================================================" -ForegroundColor White
     Write-Host "SUCCESS: Standalone GMAO app created!" -ForegroundColor Green

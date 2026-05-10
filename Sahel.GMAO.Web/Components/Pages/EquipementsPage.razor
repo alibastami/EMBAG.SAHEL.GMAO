@@ -1,6 +1,7 @@
 @page "/equipements"
 @using Sahel.GMAO.Core.Entities
 @using Sahel.GMAO.Core.Interfaces
+@using Sahel.GMAO.Core.Constants
 @using Sahel.GMAO.Web.Components.Dialogs
 @inject IEquipementService EquipementService
 @inject IDialogService DialogService
@@ -9,13 +10,15 @@
 @inject IPdfService PdfService
 @inject IJSRuntime JSRuntime
 @inject IDtService DtService
-@attribute [Authorize(Roles = "DSI")]
+@attribute [Authorize(Roles = "DSI,BM,Magazin")]
 
 <MudText Typo="Typo.h4" Class="mb-6 font-weight-bold" Color="Color.Primary">Gestion des Équipements</MudText>
 
 <MudDataGrid Items="@_equipements" Filterable="true" QuickFilter="@_quickFilter" Hideable="true" Hover="true" RowClick="@((DataGridRowClickEventArgs<Equipement> e) => OnRowClick(e))">
     <ToolBarContent>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouveau</MudButton>
+        <AuthorizeView Roles="@($"{AppRoles.DSI},{AppRoles.BM}")" Context="authContext">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="OpenCreateDialog" StartIcon="@Icons.Material.Filled.Add">Nouveau</MudButton>
+        </AuthorizeView>
         <MudSpacer />
         <MudTextField @bind-Value="_searchString" Placeholder="Rechercher (Code, Désignation, Section...)" Adornment="Adornment.Start" Immediate="true"
                       AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
@@ -38,16 +41,24 @@
                 }
             </CellTemplate>
         </TemplateColumn>
-        <TemplateColumn CellClass="d-flex justify-end">
+        <TemplateColumn CellClass="d-flex justify-end gap-2 flex-nowrap">
             <CellTemplate>
-                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Edit" OnClick="@(() => OpenEditDialog(context.Item))" />
-                <MudTooltip Text="Historique (Détails)">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.History" OnClick="@(() => ViewDetails(context.Item))" />
-                </MudTooltip>
-                <MudTooltip Text="Imprimer Fiche Historique (PDF)">
-                    <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Print" Color="Color.Info" OnClick="@(() => DownloadHistoryPdf(context.Item))" />
-                </MudTooltip>
-                <MudIconButton Size="@Size.Small" Icon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteEquipement(context.Item))" />
+                <AuthorizeView Roles="@($"{AppRoles.DSI},{AppRoles.BM}")" Context="authContext">
+                    <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Edit" Color="Color.Primary" OnClick="@(() => OpenEditDialog(context.Item))">
+                        Modifier
+                    </MudButton>
+                </AuthorizeView>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.History" Color="Color.Secondary" OnClick="@(() => ViewDetails(context.Item))">
+                    Historique
+                </MudButton>
+                <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Visibility" Color="Color.Info" OnClick="@(() => ViewHistoryPdf(context.Item))">
+                    Aperçu
+                </MudButton>
+                <AuthorizeView Roles="@($"{AppRoles.DSI},{AppRoles.BM}")" Context="authContext">
+                    <MudButton Size="@Size.Small" Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Delete" Color="Color.Error" OnClick="@(() => DeleteEquipement(context.Item))">
+                        Supprimer
+                    </MudButton>
+                </AuthorizeView>
             </CellTemplate>
         </TemplateColumn>
     </Columns>
@@ -147,15 +158,20 @@
         }
     }
 
-    private async Task DownloadHistoryPdf(Equipement equipement)
+    private async Task ViewHistoryPdf(Equipement equipement)
     {
         // Load full DT history for this equipment
         var allDts = await DtService.GetAllAsync();
         var equipmentHistory = allDts.Where(d => d.EquipementId == equipement.Id).ToList();
         
+        if (!equipmentHistory.Any())
+        {
+            Snackbar.Add($"Aucun historique trouvé pour l'équipement {equipement.Code}. Le PDF n'a pas été généré.", Severity.Warning);
+            return;
+        }
+        
         var pdfBytes = await PdfService.GenerateEquipementHistoryPdfAsync(equipement, equipmentHistory);
-        var fileName = $"HISTO_{equipement.Code}.pdf";
         using var streamRef = new DotNetStreamReference(new MemoryStream(pdfBytes));
-        await JSRuntime.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+        await JSRuntime.InvokeVoidAsync("viewFileInNewTab", streamRef);
     }
 }

@@ -185,6 +185,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.Property<int>("ArticlePdrId")
                         .HasColumnType("int");
 
+                    b.Property<string>("CauseNonExecution")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("DemandeTravailId")
                         .HasColumnType("int");
 
@@ -199,6 +202,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<double>("Quantite")
+                        .HasColumnType("float");
+
+                    b.Property<double?>("QuantitePrevue")
                         .HasColumnType("float");
 
                     b.HasKey("Id");
@@ -598,6 +604,38 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.ToTable("InterventionRoles");
                 });
 
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.LigneAnomalie", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AnomalieConstatee")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Observation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Organe")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuestionnaireId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionnaireId");
+
+                    b.ToTable("LignesAnomalie");
+                });
+
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.MaintenancePreventive", b =>
                 {
                     b.Property<int>("Id")
@@ -619,6 +657,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("FrequenceJours")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("FrequenceType")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
@@ -771,6 +812,59 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.ToTable("PointagesMachinesFabrication");
                 });
 
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.QuestionnaireArretTechnique", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Annee")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Atelier")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ChefAtelier")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EquipementId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NomConducteur")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NumeroQuestionnaire")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Section")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("VisaChefAtelier")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("VisaConducteur")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipementId");
+
+                    b.HasIndex("NumeroQuestionnaire")
+                        .IsUnique();
+
+                    b.ToTable("QuestionnairesArretTechnique");
+                });
+
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.RapportIncident", b =>
                 {
                     b.Property<int>("Id")
@@ -783,12 +877,24 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Atelier")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CausesProbables")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Conclusion")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("DateIncident")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("DegatsConstates")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DescriptionIncident")
                         .IsRequired()
@@ -796,6 +902,15 @@ namespace Sahel.GMAO.Infrastructure.Migrations
 
                     b.Property<int>("EquipementId")
                         .HasColumnType("int");
+
+                    b.Property<string>("NomChefDeptMaintenance")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomChefService")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NomPreparateur")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("NumeroRapport")
                         .IsRequired()
@@ -816,6 +931,40 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.ToTable("RapportsIncidents");
                 });
 
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.SuiviTempsMarcheHebdomadaire", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Annee")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EquipementId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("HeuresCumulees")
+                        .HasColumnType("float");
+
+                    b.Property<double>("HeuresMarche")
+                        .HasColumnType("float");
+
+                    b.Property<int>("Mois")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Semaine")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EquipementId", "Annee", "Mois", "Semaine")
+                        .IsUnique();
+
+                    b.ToTable("SuivisTempsMarche");
+                });
+
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.TacheEntretien", b =>
                 {
                     b.Property<int>("Id")
@@ -823,6 +972,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Consigne")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("EstFait")
                         .HasColumnType("bit");
@@ -852,6 +1004,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
 
                     b.Property<double>("TempsRealiseHeures")
                         .HasColumnType("float");
+
+                    b.Property<string>("ValeurMesuree")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
@@ -896,6 +1051,9 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.Property<int?>("Specialite")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("TauxHoraire")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Username")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -921,18 +1079,11 @@ namespace Sahel.GMAO.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<decimal>("HourlyRate")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("Specialite")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Unit")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -1100,6 +1251,17 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.Navigation("Intervenant");
                 });
 
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.LigneAnomalie", b =>
+                {
+                    b.HasOne("Sahel.GMAO.Core.Entities.QuestionnaireArretTechnique", "Questionnaire")
+                        .WithMany("Anomalies")
+                        .HasForeignKey("QuestionnaireId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Questionnaire");
+                });
+
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.MaintenancePreventive", b =>
                 {
                     b.HasOne("Sahel.GMAO.Core.Entities.Equipement", "Equipement")
@@ -1152,6 +1314,17 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.Navigation("Intervenant");
                 });
 
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.QuestionnaireArretTechnique", b =>
+                {
+                    b.HasOne("Sahel.GMAO.Core.Entities.Equipement", "Equipement")
+                        .WithMany()
+                        .HasForeignKey("EquipementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Equipement");
+                });
+
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.RapportIncident", b =>
                 {
                     b.HasOne("Sahel.GMAO.Core.Entities.Equipement", "Equipement")
@@ -1169,6 +1342,17 @@ namespace Sahel.GMAO.Infrastructure.Migrations
                     b.Navigation("Equipement");
 
                     b.Navigation("Redacteur");
+                });
+
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.SuiviTempsMarcheHebdomadaire", b =>
+                {
+                    b.HasOne("Sahel.GMAO.Core.Entities.Equipement", "Equipement")
+                        .WithMany()
+                        .HasForeignKey("EquipementId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Equipement");
                 });
 
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.TacheEntretien", b =>
@@ -1232,6 +1416,11 @@ namespace Sahel.GMAO.Infrastructure.Migrations
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.InterventionRole", b =>
                 {
                     b.Navigation("Pointages");
+                });
+
+            modelBuilder.Entity("Sahel.GMAO.Core.Entities.QuestionnaireArretTechnique", b =>
+                {
+                    b.Navigation("Anomalies");
                 });
 
             modelBuilder.Entity("Sahel.GMAO.Core.Entities.WorkingProfile", b =>

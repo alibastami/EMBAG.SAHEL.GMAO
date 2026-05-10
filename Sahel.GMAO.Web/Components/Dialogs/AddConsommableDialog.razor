@@ -3,6 +3,7 @@
 @inject IStockService StockService
 @inject IDtService DtService
 @inject ISnackbar Snackbar
+@inject AuthenticationStateProvider AuthStateProvider
 
 <MudDialog>
     <TitleContent>
@@ -22,9 +23,12 @@
                 <MudItem xs="6">
                     <MudNumericField T="double" Label="Quantité" @bind-Value="_quantite" Required="true" Variant="Variant.Outlined" Min="0.1" />
                 </MudItem>
-                <MudItem xs="6">
-                    <MudNumericField T="decimal" Label="Prix Unitaire (DA)" @bind-Value="_prixUnitaire" Required="true" Variant="Variant.Outlined" Min="0" />
-                </MudItem>
+                @if (_userRole != Sahel.GMAO.Core.Constants.AppRoles.Executant)
+                {
+                    <MudItem xs="6">
+                        <MudNumericField T="decimal" Label="Prix Unitaire (DA)" @bind-Value="_prixUnitaire" Required="true" Variant="Variant.Outlined" Min="0" />
+                    </MudItem>
+                }
                 <MudItem xs="6">
                     <MudTextField Label="N° BSM" @bind-Value="_nBsm" Variant="Variant.Outlined" />
                 </MudItem>
@@ -51,6 +55,7 @@
     private decimal _prixUnitaire;
     private string? _nBsm;
     private string? _observation;
+    private string _userRole = "";
 
     private void OnArticleSelected(int id)
     {
@@ -61,6 +66,9 @@
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        _userRole = authState.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+        
         _articles = await StockService.GetAllAsync();
     }
 
